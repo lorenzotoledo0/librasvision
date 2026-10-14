@@ -6,7 +6,7 @@ import itertools
 
 import pytest
 
-from libras.ui.sobreposicoes import ALVO, Ret, SuavizadorCabeca, cabeca_na_tela, lado_na_tela, posicionar
+from libras.ui.sobreposicoes import ALVO, MARGEM, Ret, SuavizadorCabeca, cabeca_na_tela, lado_na_tela, posicionar
 
 # (janela, altura da barra minima, linhas da barra tecnica) nas tres faixas (390, 900 e 1366 px)
 FAIXAS = {
@@ -60,10 +60,11 @@ def test_nada_se_cruza_com_tudo_ligado(faixa, posicao, cabeca):
         assert not ra.cruza(rb), (faixa, posicao, cabeca, a, ra, b, rb)
     # a barra tecnica termina antes do botao (nunca passa por baixo dele)
     assert out["barra_tecnica"].direita <= out["botao_config"].x
-    # legenda, botao e barra tecnica ficam dentro da imagem; a etiqueta, dentro da janela
-    for k in ("legenda", "botao_config", "barra_tecnica"):
+    # legenda e barra tecnica ficam dentro da imagem; o botao, no canto superior direito da janela
+    for k in ("legenda", "barra_tecnica"):
         assert out[k].dentro(img), (k, out[k], img)
-    assert out["etiqueta"].dentro(jan)
+    assert out["etiqueta"].dentro(jan) and out["botao_config"].dentro(jan)
+    assert jan.direita - out["botao_config"].direita == MARGEM and out["botao_config"].y - jan.y == MARGEM
     for lado, r in out["bordas"].items():  # barras de mao cortada nao cobrem nada
         for k in CHAVES:
             assert not r.cruza(out[k]), (lado, k)

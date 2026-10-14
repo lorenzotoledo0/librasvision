@@ -17,6 +17,8 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 - O máximo de takes na rajada acompanha a memória disponível para a resolução da câmera.
 - O teste de troca de abas usa a mediana de 3 medições e voltou ao CI.
+- Os dois aplicativos abrem maximizados, em modo janela.
+- A engrenagem do LibrasVision fica no canto superior direito da janela, e não mais no canto da imagem.
 
 ### Corrigido
 
