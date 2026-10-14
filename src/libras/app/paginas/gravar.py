@@ -5,7 +5,9 @@ sinalizador nao aparece; FPS medido pelos instantes reais. Ao parar a gravacao, 
 TODOS os frames (barra de progresso); ao aceitar, .mp4 e .npz sao salvos juntos.
 
 Na rajada, os takes ficam em memoria e a extracao de todos acontece so no fim (ultimo take ou Parar),
-para os takes sairem um atras do outro. O numero de takes e limitado por coleta.gravacao.memoria_max_rajada_mb.
+para os takes sairem um atras do outro. O numero de takes e limitado por coleta.gravacao.memoria_max_rajada_mb
+(o maximo do campo acompanha a camera). Depois da extracao vem a revisao rapida: cada take passa na tela
+com o esqueleto e a pessoa marca o que fica (Enter) ou sai (Esc); so os marcados sao salvos.
 """
 
 from __future__ import annotations
@@ -23,6 +25,8 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QProgressBar,
     QRadioButton,
     QSpinBox,
@@ -74,6 +78,9 @@ class PaginaClasse(Pagina):
         self._fila: list[tuple[list, list]] = []  # takes da rajada ainda sem extracao: (frames, instantes)
         self._a_salvar: list = []  # takes da rajada ja extraidos, salvos um por vez
         self._res_rajada: dict = {}
+        self._revisar: list[dict] = []  # revisao rapida da rajada: {frames, info, manter}
+        self._rev_k = 0  # take da rajada em exibicao
+        self._base_meta = (0, 0)  # takes ja salvos e meta do sinalizador/palavra no inicio da rajada
         self._ultimo_n = -1
         self._cont = 0
         self._extrator = None
@@ -90,6 +97,17 @@ class PaginaClasse(Pagina):
         self.qualidade = rotulo("", "alerta_aviso", quebra=True)
         esq.addWidget(self.status)
         esq.addWidget(self.qualidade)
+        # revisao rapida da rajada: marcado = sera salvo
+        self.lista_rajada = QListWidget()
+        self.lista_rajada.setVisible(False)
+        self.lista_rajada.setMaximumHeight(170)
+        self.lista_rajada.currentRowChanged.connect(self._ver_take_rajada)
+        self.lista_rajada.itemChanged.connect(self._marcacao_mudou)
+        esq.addWidget(self.lista_rajada)
+        self.bt_salvar_raj = botao("Salvar marcados", primario=True, acao=self._salvar_revisados)
+        self.bt_marcar_raj = botao("Marcar todos", acao=lambda: self._marcar_rajada(True))
+        self.bt_desmarcar_raj = botao("Desmarcar todos", acao=lambda: self._marcar_rajada(False))
+        esq.addLayout(linha(self.bt_salvar_raj, self.bt_marcar_raj, self.bt_desmarcar_raj, esticar_fim=False))
         h.addLayout(esq, 3)
 
         p, lay = painel()
@@ -142,15 +160,23 @@ class PaginaClasse(Pagina):
         self.sp_rajada = QSpinBox()
         self.sp_rajada.setRange(2, 50)
         self.sp_rajada.setValue(5)
+        self.sp_rajada.setToolTip("O máximo acompanha a memória disponível para a resolução da câmera.")
         lay.addLayout(linha(rotulo("Takes na rajada"), self.sp_rajada))
         self.bt_cam = botao("Ligar câmera", primario=True, acao=self.ligar, dica="Atalho: C")
         self.bt_grav = botao("Gravar take (Espaço)", acao=self.iniciar_take)
         self.bt_raj = botao("Gravar rajada", acao=self.iniciar_rajada)
-        self.bt_parar = botao("Parar rajada", acao=self.parar_rajada)
+        self.bt_parar = botao(
+            "Parar rajada", acao=self.parar_rajada, dica="O take em gravação termina e é aproveitado."
+        )
+        self.bt_parar_desc = botao(
+            "Parar e descartar o take atual (Esc)",
+            acao=lambda: self.parar_rajada(descartar_atual=True),
+            dica="Para a rajada sem aproveitar o take que está sendo gravado.",
+        )
         self.bt_aceitar = botao("Aceitar (Enter)", primario=True, acao=self.aceitar)
         self.bt_desc = botao("Descartar (Esc)", acao=self.descartar)
         self.bt_regr = botao("Regravar (R)", acao=self.regravar)
-        for b in (self.bt_cam, self.bt_grav, self.bt_raj, self.bt_parar):
+        for b in (self.bt_cam, self.bt_grav, self.bt_raj, self.bt_parar, self.bt_parar_desc):
             lay.addWidget(b)
         lay.addLayout(linha(self.bt_aceitar, self.bt_desc, esticar_fim=False))
         lay.addWidget(self.bt_regr)
@@ -205,18 +231,15 @@ class PaginaClasse(Pagina):
             self._rajada = 0
         self.desligar()
         self.timer.stop()
-        if self._em_rajada and self.estado != "analisando":
+        if self._em_rajada and self.estado not in ("analisando", "revisao_rajada"):
             self._processar_rajada()  # takes ja gravados nao se perdem; o take em andamento, sim
 
     def pode_fechar(self) -> bool:
-        if self.estado in ("gravando", "analisando") or self._fila:
+        pendentes = len(self._fila) + len(self._a_salvar) + len(self._revisar)
+        if self.estado in ("gravando", "analisando", "revisao_rajada") or pendentes:
             from ..base import perguntar
 
-            extra = (
-                (f" {len(self._fila) + len(self._a_salvar)} take(s) da rajada ainda não foram salvos e serão perdidos.")
-                if (self._fila or self._a_salvar)
-                else ""
-            )
+            extra = f" {pendentes} take(s) da rajada ainda não foram salvos e serão perdidos." if pendentes else ""
             return perguntar(self, f"Há uma gravação em andamento.{extra} Sair mesmo assim?")
         return True
 
@@ -233,10 +256,10 @@ class PaginaClasse(Pagina):
             self.ligar()
 
     def _tecla_esc(self) -> None:
-        if self.estado == "revisao":
+        if self.estado in ("revisao", "revisao_rajada"):
             self.descartar()
         else:
-            self.parar_rajada()
+            self.parar_rajada(descartar_atual=self.estado == "gravando")
 
     # ------------------------------------------------------------------
     def _atualizar_classes(self) -> None:
@@ -301,8 +324,16 @@ class PaginaClasse(Pagina):
         self.bt_grav.setEnabled(e == "previa" or (e == "gravando" and self._modo_manual))
         self.bt_raj.setEnabled(e == "previa")
         self.bt_parar.setEnabled(self._rajada > 0 and e in ("contagem", "gravando", "intervalo"))
-        for b in (self.bt_aceitar, self.bt_desc, self.bt_regr):
-            b.setEnabled(e == "revisao")
+        self.bt_parar_desc.setEnabled(self._em_rajada and e == "gravando")
+        for b in (self.bt_aceitar, self.bt_desc):
+            b.setEnabled(e in ("revisao", "revisao_rajada"))
+        self.bt_regr.setEnabled(e == "revisao")
+        rev = e == "revisao_rajada"
+        self.lista_rajada.setVisible(rev)
+        for b in (self.bt_salvar_raj, self.bt_marcar_raj, self.bt_desmarcar_raj):
+            b.setVisible(rev)
+        self.bt_aceitar.setText("Manter e próximo (Enter)" if rev else "Aceitar (Enter)")
+        self.bt_desc.setText("Descartar e próximo (Esc)" if rev else "Descartar (Esc)")
 
     def ligar(self) -> None:
         """Abre a camera em segundo plano (no Windows pode levar segundos). Antes, espera o encerramento
@@ -335,6 +366,7 @@ class PaginaClasse(Pagina):
             self.captura = Captura(cap, info).iniciar()
             self.previa = TrabalhadorPrevia(self.cfg["mediapipe"])
             self.estado = "previa"
+            self._ajustar_limite_rajada()
             self.status.setText(
                 f"Câmera {info.indice} via {info.backend}: {info.largura}x{info.altura}, "
                 f"{info.fps_declarado:.0f} FPS declarados."
@@ -359,7 +391,7 @@ class PaginaClasse(Pagina):
             th = encerrar_em_segundo_plano("camera", *funcs)
             if esperar:
                 th.join(timeout=10)
-        if self.estado not in ("analisando",):
+        if self.estado not in ("analisando", "revisao_rajada"):
             self.estado = "parado"
         self.tela.clear()
         self.tela.setText("Câmera desligada")
@@ -403,6 +435,14 @@ class PaginaClasse(Pagina):
         por_take = info.largura * info.altura * 3 * fps * float(g["duracao_s"])
         return max(1, int(float(g["memoria_max_rajada_mb"]) * 1024**2 // max(por_take, 1)))
 
+    def _ajustar_limite_rajada(self) -> None:
+        """O maximo do campo segue o que cabe na memoria com a resolucao real da camera."""
+        cabe = self._takes_que_cabem()
+        self.sp_rajada.setMaximum(max(2, min(50, cabe)))
+        self.bt_raj.setToolTip(
+            f"Até {cabe} takes por rajada com a câmera em {self.captura.info.largura}x{self.captura.info.altura}."
+        )
+
     def iniciar_rajada(self) -> None:
         if self.estado != "previa":
             return
@@ -421,14 +461,23 @@ class PaginaClasse(Pagina):
             return
         self._meta, self._modo_manual, self._rajada = m, False, n
         self._em_rajada, self._fila = True, []
+        n_salvos = Manifesto(self.cfg).contagens(("ok", "pendente")).get((m.classe, m.signer_id), 0)
+        self._base_meta = (n_salvos, Vocabulario(self.cfg).meta(m.classe, m.signer_id))
         if self.previa:
             self.previa.ativo = False  # CPU livre para a captura durante toda a rajada
         self._contagem()
 
-    def parar_rajada(self) -> None:
-        """Encerra a rajada. O take em gravacao termina normalmente; depois os takes gravados sao processados."""
+    def parar_rajada(self, descartar_atual: bool = False) -> None:
+        """Encerra a rajada e processa os takes ja gravados. Sem descartar_atual, o take em gravacao termina
+        normalmente e entra na revisao; com descartar_atual, ele e jogado fora na hora."""
+        if not self._em_rajada:
+            return
         self._rajada = 0
-        if self.estado in ("contagem", "intervalo"):
+        if self.estado == "gravando" and descartar_atual and self.captura:
+            self.captura.parar_gravacao()  # frames descartados: nunca foram salvos
+            self._processar_rajada()
+            self.status.setText("Take em gravação descartado. " + self.status.text())
+        elif self.estado in ("contagem", "intervalo"):
             self._processar_rajada()
         self._ajustar()
 
@@ -580,13 +629,11 @@ class PaginaClasse(Pagina):
             return infos
 
         def pronto(infos):
-            self._a_salvar = list(zip(fila, infos))
-            self._res_rajada = {"ok": 0, "pendente": 0, "falhas": [], "total": len(fila)}
-            fila.clear()  # a memoria de cada take e liberada assim que ele e salvo
-            self.barra.setRange(0, len(self._a_salvar))
-            self.barra.setValue(0)
-            self.status.setText(f"Salvando os {len(self._a_salvar)} takes da rajada...")
-            QTimer.singleShot(0, self._salvar_proximo_da_rajada)
+            self._revisar = [
+                {"frames": frames, "info": info, "manter": not info.erros} for (frames, _ts), info in zip(fila, infos)
+            ]
+            fila.clear()
+            self._iniciar_revisao_rajada()
 
         def falhou(e):
             self._em_rajada = False
@@ -605,7 +652,7 @@ class PaginaClasse(Pagina):
         if not self._a_salvar:
             self._concluir_rajada()
             return
-        (frames, _), info = self._a_salvar.pop(0)
+        frames, info = self._a_salvar.pop(0)  # memoria do take liberada assim que ele e salvo
         status = "pendente" if info.avisos else "ok"
         try:
             registrar_take(
@@ -626,7 +673,7 @@ class PaginaClasse(Pagina):
         salvos = r["ok"] + r["pendente"]
         self.status.setText(
             f"Rajada concluída: {salvos} de {r['total']} takes salvos com landmarks "
-            f"({r['ok']} ok, {r['pendente']} pendentes para revisão)."
+            f"({r['ok']} ok, {r['pendente']} pendentes para revisão, {r['descartados']} descartados na revisão)."
         )
         self.qualidade.setText(
             f"{r['pendente']} take(s) com aviso de qualidade ficaram pendentes; confira na aba Revisão."
@@ -639,13 +686,96 @@ class PaginaClasse(Pagina):
         if r["falhas"]:
             erro(self, f"{len(r['falhas'])} take(s) da rajada não foram salvos:\n" + "\n".join(r["falhas"]), "Rajada")
 
+    # ------------------------------------------------------------------
+    # Revisao rapida da rajada
+    def _iniciar_revisao_rajada(self) -> None:
+        self.barra.setVisible(False)
+        self.estado = "revisao_rajada"
+        self._rev_k, self._rev_i = 0, 0
+        self.lista_rajada.blockSignals(True)
+        self.lista_rajada.clear()
+        for k, t in enumerate(self._revisar):
+            it = QListWidgetItem(self._texto_item_rajada(k))
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+            it.setCheckState(Qt.Checked if t["manter"] else Qt.Unchecked)
+            if t["info"].erros:
+                it.setFlags(it.flags() & ~Qt.ItemIsUserCheckable)  # take com erro nao pode ser salvo
+            self.lista_rajada.addItem(it)
+        self.lista_rajada.setCurrentRow(0)
+        self.lista_rajada.blockSignals(False)
+        self.status.setText(
+            f"Revisão da rajada: {len(self._revisar)} takes. Enter mantém e passa ao próximo, Esc descarta. "
+            "Só os marcados serão salvos."
+        )
+        self.qualidade.setText("")
+        self._ajustar()
+
+    def _texto_item_rajada(self, k: int) -> str:
+        info = self._revisar[k]["info"]
+        q = ("erro: " + "; ".join(info.erros)) if info.erros else (", ".join(info.avisos) or "sem avisos")
+        return f"Take {k + 1}: {info.n_frames} frames, mão em {info.taxa_mao:.0%} | {q}"
+
+    def _ver_take_rajada(self, k: int) -> None:
+        if 0 <= k < len(self._revisar):
+            self._rev_k, self._rev_i = k, 0
+
+    def _marcacao_mudou(self, it) -> None:
+        k = self.lista_rajada.row(it)
+        if 0 <= k < len(self._revisar):
+            self._revisar[k]["manter"] = it.checkState() == Qt.Checked
+
+    def _marcar_rajada(self, manter: bool) -> None:
+        for k, t in enumerate(self._revisar):
+            if not t["info"].erros:
+                self.lista_rajada.item(k).setCheckState(Qt.Checked if manter else Qt.Unchecked)
+
+    def _decidir_take_rajada(self, manter: bool) -> None:
+        k = self._rev_k
+        if not (0 <= k < len(self._revisar)):
+            return
+        if not self._revisar[k]["info"].erros:
+            self.lista_rajada.item(k).setCheckState(Qt.Checked if manter else Qt.Unchecked)
+        if k + 1 < len(self._revisar):
+            self.lista_rajada.setCurrentRow(k + 1)
+        else:
+            self.status.setText("Último take revisado. Confira as marcações e clique em Salvar marcados.")
+            self.bt_salvar_raj.setFocus()
+
+    def _salvar_revisados(self) -> None:
+        if self.estado != "revisao_rajada":
+            return
+        manter = [t for t in self._revisar if t["manter"] and not t["info"].erros]
+        self._res_rajada = {
+            "ok": 0,
+            "pendente": 0,
+            "falhas": [],
+            "total": len(self._revisar),
+            "descartados": len(self._revisar) - len(manter),
+        }
+        self._a_salvar = [(t["frames"], t["info"]) for t in manter]
+        self._revisar = []
+        self.lista_rajada.clear()
+        self.estado = "analisando"
+        self.barra.setVisible(True)
+        self.barra.setRange(0, max(len(self._a_salvar), 1))
+        self.barra.setValue(0)
+        self.status.setText(f"Salvando os {len(self._a_salvar)} takes marcados...")
+        self._ajustar()
+        QTimer.singleShot(0, self._salvar_proximo_da_rajada)
+
     def aceitar(self) -> None:
+        if self.estado == "revisao_rajada":
+            self._decidir_take_rajada(True)
+            return
         if self.estado == "revisao":
             self._salvar("ok")
             self.estado = "previa" if self.captura else "parado"
             self._ajustar()
 
     def descartar(self) -> None:
+        if self.estado == "revisao_rajada":
+            self._decidir_take_rajada(False)
+            return
         if self.estado == "revisao":
             self._clipe = None
             self.status.setText("Take descartado (nada foi salvo).")
@@ -672,6 +802,24 @@ class PaginaClasse(Pagina):
                 self._comecar()
         elif self.estado == "gravando" and not self.captura.gravando:
             self._finalizar()
+        if self.estado == "revisao_rajada" and self._revisar:
+            t = self._revisar[min(self._rev_k, len(self._revisar) - 1)]
+            frames, seq = t["frames"], t["info"].sequencia
+            if frames:
+                i = self._rev_i % len(frames)
+                self._rev_i += 1
+                img = frames[i]
+                if seq is not None:
+                    from ...landmarks import desenhar_esqueleto
+
+                    img = desenhar_esqueleto(img, seq.pose[i], seq.mao_esq[i], seq.mao_dir[i], seq.presenca[i])
+                marca = "MANTER" if t["manter"] else "DESCARTAR"
+                self._exibir(
+                    img,
+                    f"RAJADA take {self._rev_k + 1}/{len(self._revisar)} [{marca}]: Enter mantem, Esc descarta",
+                    AMARELO,
+                )
+            return
         if self.estado == "revisao" and self._clipe:
             frames = self._clipe[0]
             i = self._rev_i % len(frames)
@@ -712,12 +860,21 @@ class PaginaClasse(Pagina):
             legenda = f"{'Proxima em' if self.estado == 'intervalo' else 'Gravando em'} {r:.1f} s" + (
                 f" (faltam {self._rajada})" if self._rajada else ""
             )
+            legenda += self._texto_meta_rajada()
             cor = AMARELO
         elif self.estado == "gravando":
-            legenda, cor = f"GRAVANDO {self.captura.tempo_gravado():.1f} s", VERMELHO
+            legenda, cor = f"GRAVANDO {self.captura.tempo_gravado():.1f} s" + self._texto_meta_rajada(), VERMELHO
         elif self.estado == "analisando":
             legenda, cor = "Extraindo landmarks...", AMARELO
         self._exibir(desenho, legenda, cor, gravando=self.estado == "gravando")
+
+    def _texto_meta_rajada(self) -> str:
+        """Progresso do sinalizador na palavra durante a rajada: salvos + gravados nesta rajada / meta."""
+        if not self._em_rajada or self._meta is None:
+            return ""
+        salvos, meta = self._base_meta
+        atual = len(self._fila) + (1 if self.estado == "gravando" else 0)
+        return f" | {self._meta.signer_id}/{self._meta.classe}: {salvos + atual} de {meta}"
 
     def _exibir(self, frame, legenda=None, cor=BRANCO, gravando=False) -> None:
         img = cv2.flip(frame, 1)  # espelhado SO na tela
