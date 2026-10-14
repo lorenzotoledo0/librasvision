@@ -492,6 +492,24 @@ def test_tela_cheia_esconde_e_mostra_controles(qapp, abrir, raiz_app):
     assert not w.isFullScreen()
 
 
+def test_sair_da_tela_cheia_volta_ao_estado_anterior(qapp, abrir):
+    """O app abre maximizado; F11 e F11 de novo voltam a janela maximizada (nao a um tamanho fixo)."""
+    w = abrir()
+    w.showMaximized()
+    qapp.processEvents()
+    w.alternar_tela_cheia()
+    qapp.processEvents()
+    w.alternar_tela_cheia()
+    qapp.processEvents()
+    assert w.isMaximized() and not w.isFullScreen()
+    w.showNormal()
+    qapp.processEvents()
+    w.alternar_tela_cheia()
+    w.alternar_tela_cheia()
+    qapp.processEvents()
+    assert not w.isMaximized() and not w.isFullScreen()
+
+
 def test_sessao_da_interface_nao_cria_arquivos(qapp, abrir, raiz_app, tmp_path, monkeypatch):
     """Selo (13.9-B), lado da interface: uma sessao com camera, palavras, pausa, copiar e relatorio nao cria
     nenhum arquivo alem das preferencias (servico FALSO; o real e testado em test_servico_app_real)."""
