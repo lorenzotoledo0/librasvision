@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # As versoes de MediaPipe, TensorFlow, NumPy e protobuf sao travadas entre si (docs/decisoes.md, D1).
+  # Atualizacoes delas precisam de verificacao manual; o Dependabot so abre PRs para as demais.
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: mediapipe
+      - dependency-name: tensorflow
+      - dependency-name: numpy
+      - dependency-name: protobuf
+      - dependency-name: opencv-contrib-python
+    labels: ["chore"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: ["ci"]
