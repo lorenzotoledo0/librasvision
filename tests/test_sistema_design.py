@@ -63,13 +63,12 @@ def test_texto_sobre_acentos():
     assert tema.contraste(branco, tema.COR["selecao"]) >= 4.5  # linha selecionada da tabela
     for cor in tema.TOKENS["gradiente"]["navegacao"]:  # item ativo da barra: texto normal
         assert tema.contraste(branco, cor) >= 4.5
-    # botao primario (gradiente da marca, mantido): rotulo em texto grande e negrito -> 3:1 (WCAG 1.4.3)
-    for cor in tema.TOKENS["gradiente"]["primario"]:
-        assert tema.contraste(branco, cor) >= 3.0
-    qss = tema.folha_de_estilo()
-    regra = re.search(r"QPushButton#primario \{([^}]*)\}", qss).group(1)
-    tam = int(re.search(r"font-size: (\d+)px", regra).group(1))
-    assert "font-weight: 700" in regra and tam >= 18.66
+    # botao primario: azul solido (sem gradiente desde 2026-10-14), rotulo em texto normal -> 4,5:1 (WCAG 1.4.3),
+    # inclusive nos estados hover e pressionado
+    for nome in ("primario", "primario_hover", "primario_pressionado"):
+        a, b = tema.TOKENS["gradiente"][nome]
+        assert a == b  # cor solida
+        assert tema.contraste(branco, a) >= 4.5, nome
 
 
 def test_legenda_sobre_video_legivel_em_qualquer_imagem():
@@ -99,10 +98,9 @@ def test_folha_de_estilo_por_faixa_e_escala():
         a = tema.folha_de_estilo(escala=1.0, faixa="expandida")
         b = tema.folha_de_estilo(escala=1.5, faixa="compacta")
         assert "font-size: 14px" in a and "font-size: 21px" in b
-        # alvo de toque de 44 px nas faixas compacta e media: botao = conteudo + 2x9 de padding + 2 de borda
-        assert re.search(r"min-height: 24px", b) and not re.search(
-            r"QPushButton, QToolButton#acao \{[^}]*min-height: 24px", a
-        )
+        # alvo de toque de 44 px nas faixas compacta e media: botao = conteudo + 2x7 de padding + 2 de borda
+        assert re.search(r"QPushButton, QToolButton#acao \{[^}]*padding: 7px[^}]*min-height: 28px", b)
+        assert not re.search(r"QPushButton, QToolButton#acao \{[^}]*min-height: 28px", a)
     finally:
         tema.configurar(escala_fonte=1.0, faixa="expandida")
 
