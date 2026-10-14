@@ -512,5 +512,5 @@ def main(argv=None) -> int:
         ).exec()
         return 2
     ponte.erro.connect(lambda t, m: Dialogo(janela, t, m, "erro").exec())
-    janela.show()
+    janela.showMaximized()  # abre ocupando a tela, em modo janela (com bordas e barra de titulo)
     return app.exec()

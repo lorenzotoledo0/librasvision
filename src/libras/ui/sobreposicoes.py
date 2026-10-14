@@ -120,11 +120,13 @@ def posicionar(
         lim_inf = min(lim_inf, out["barra_minima"].y - m)
     btn = None
     if botao_config:
-        btn = Ret(imagem.direita - m - ALVO, imagem.y + m, ALVO, ALVO)
+        # canto superior direito da JANELA (nao da imagem): em tela larga a imagem 4:3 fica centralizada
+        # e o botao no canto dela parecia solto no meio da tela
+        btn = Ret(janela.direita - m - ALVO, janela.y + m, ALVO, ALVO)
         out["botao_config"] = btn
     linha_topo = btn.base if btn else topo - m  # a legenda no alto fica abaixo da fila do botao
     if barra_tecnica > 0:
-        fim = (btn.x - m) if btn else imagem.direita - m
+        fim = min(btn.x, imagem.direita) - m if btn else imagem.direita - m
         out["barra_tecnica"] = Ret(imagem.x + m, imagem.y + m, max(0.0, fim - imagem.x - m), barra_tecnica)
         linha_topo = max(linha_topo, out["barra_tecnica"].base)
     topo_livre = linha_topo + m
@@ -186,6 +188,8 @@ def posicionar(
             r = Ret(imagem.direita - e, topo_livre, e, max(0.0, lim_inf - topo_livre))
         elif lado == "topo":
             r = Ret(imagem.x + m, imagem.y, max(0.0, imagem.w - 2 * m), e)
+            if btn is not None and r.cruza(btn):  # a barra termina antes do botao, que fica no canto da janela
+                r = Ret(r.x, r.y, max(0.0, btn.x - m - r.x), e)
         else:
             r = Ret(imagem.x + m, lim_inf + m - e, max(0.0, imagem.w - 2 * m), e)
         out["bordas"][lado] = r

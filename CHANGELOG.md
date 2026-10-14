@@ -6,6 +6,11 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não publicado]
 
+### Alterado
+
+- Os dois aplicativos abrem maximizados, em modo janela.
+- A engrenagem do LibrasVision fica no canto superior direito da janela, e não mais no canto da imagem.
+
 ## [0.1.0] - 2026-10-14
 
 Primeira versão pública. Base completa do sistema, **sem dados reais e sem resultados medidos**.

@@ -552,7 +552,8 @@ class JanelaReal(QMainWindow):
         self.t_esconder.setInterval(ESCONDER_CONTROLES_MS)
         self.t_esconder.timeout.connect(self._esconder_controles)
         self._atalhos()
-        self.resize(1366, 800)
+        self.resize(1366, 800)  # tamanho ao sair do modo maximizado
+        self._maximizada_antes = True
 
     # ------------------------------------------------------------------ geometria e faixas
     def eventFilter(self, obj, ev) -> bool:  # noqa: N802
@@ -970,12 +971,16 @@ class JanelaReal(QMainWindow):
     # ------------------------------------------------------------------ tela cheia e inatividade
     def alternar_tela_cheia(self) -> None:
         if self.isFullScreen():
-            self.showNormal()
+            if self._maximizada_antes:
+                self.showMaximized()
+            else:
+                self.showNormal()
             self.t_esconder.stop()
             self._mostrar_controles()
             self.barra.definir_texto(self.barra.bt_tela, "Tela cheia (F11)", "Tela cheia")
             self.barra.bt_tela.setIcon(icone("tela_cheia", tema.CORES["texto"]))
         else:
+            self._maximizada_antes = self.isMaximized()
             self.showFullScreen()
             self.t_esconder.start()
             self.barra.definir_texto(self.barra.bt_tela, "Sair da tela cheia (F11)", "Sair")
@@ -1092,7 +1097,7 @@ def main(argv=None) -> int:
         Dialogo(None, NOME_APP, f"Não foi possível ler a configuração:\n\n{e}", "erro").exec()
         return 2
     janela = JanelaReal(cfg)
-    janela.show()
+    janela.showMaximized()  # abre ocupando a tela, em modo janela; F11 continua alternando a tela cheia
     QTimer.singleShot(0, janela.iniciar)
     return app.exec()
 

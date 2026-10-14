@@ -394,7 +394,7 @@ Base da decisão: `docs/analise_interface.md` (padrões de apps de Libras, legen
 - O hash detecta pacote corrompido ou alterado depois da publicação, mas não é assinatura digital: quem altera o modelo pode alterar o cartão. Assinatura (chave da equipe) fica como opção se houver distribuição remota.
 - Distribuição remota (registrada, não decidida): servir os pacotes de um endereço da equipe (por exemplo, releases de um repositório) com o app conferindo hash e assinatura antes de importar. Exigiria rede, mudaria o texto do selo de privacidade (13.9-B) e traria "perda de pacotes" e falhas de download como novas situações; nesta etapa não há rede.
 
-**Tela (13.3).** Uma tela só: câmera ocupando a janela (imagem inteira, sem cortar, para a pessoa ver as próprias mãos), legenda sobre o vídeo, engrenagem no canto superior direito (44 px) e barra mínima embaixo: iniciar e parar câmera, pausar legenda, tela cheia, Sinais reconhecidos, selo de privacidade e, numa segunda linha, o indicador de mãos e o aviso permanente "Reconhece só os sinais do vocabulário deste modelo e não substitui um intérprete de Libras."
+**Tela (13.3).** Uma tela só: câmera ocupando a janela (imagem inteira, sem cortar, para a pessoa ver as próprias mãos), legenda sobre o vídeo, engrenagem no canto superior direito da janela (44 px; até 2026-10-14 ficava no canto da imagem, que em tela larga é centralizada e deixava o botão no meio da tela) e barra mínima embaixo: iniciar e parar câmera, pausar legenda, tela cheia, Sinais reconhecidos, selo de privacidade e, numa segunda linha, o indicador de mãos e o aviso permanente "Reconhece só os sinais do vocabulário deste modelo e não substitui um intérprete de Libras."
 - Estados com orientação: sem modelo (explica e oferece importar), falha de câmera (causa provável e ação a partir das mensagens de abertura de câmera de D9, com "Tentar de novo" e "Escolher outra câmera"), aquecendo e ativo. A tela não mostra barras de probabilidade nem ajustes de decisão (só na bancada).
 - A decisão vem do pacote, pelo mesmo `Reconhecedor`/`Transcritor` de D15; o usuário não a ajusta.
 
@@ -481,6 +481,8 @@ Base da decisão: `docs/analise_interface.md` (padrões de apps de Libras, legen
 
 Num cliente nativo, legenda, guia e sobreposições são lógica pura e portável. O serviço depende de MediaPipe e TensorFlow (ver as opções para mobile em D18).
 
+
+**Abertura da janela (2026-10-14).** Os dois aplicativos abrem maximizados, em modo janela (com bordas e barra de título). No app real, F11 continua alternando a tela cheia, e ao sair dela a janela volta ao estado anterior (maximizada ou não).
 ## Decisões tomadas sem consulta à equipe (quarta rodada, item 13)
 
 1. `LibrasVision.bat` foi renomeado para `LibrasVisionLab.bat` (bancada); o nome `LibrasVision.bat` passou a abrir o app real.
