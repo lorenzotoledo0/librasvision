@@ -6,28 +6,6 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não publicado]
 
-### Adicionado
-
-- Revisão rápida no fim da rajada: cada take passa na tela com o esqueleto e só os marcados são salvos.
-- Revisão em lote na aba Revisão: marcar pendentes ou todos e aprovar ou rejeitar de uma vez.
-- Progresso da meta do sinalizador na legenda durante a rajada.
-- "Parar e descartar o take atual" (Esc durante a gravação da rajada).
-- Prévia de augmentation na aba Revisão: o take e 5 variações animadas, com famílias e intensidade ajustáveis e exportação de figura.
-
-### Alterado
-
-- Visual neutro nas duas interfaces: grafite com um único azul de destaque, sem gradientes, cantos menores.
-- Bancada: cabeçalho de página compacto, barra de ações fixa no rodapé (ações principais sempre visíveis), seções recolhíveis na Gravar e no Treino e barra lateral que rola em vez de cortar itens em janela baixa.
-
-- O máximo de takes na rajada acompanha a memória disponível para a resolução da câmera.
-- O teste de troca de abas usa a mediana de 3 medições e voltou ao CI.
-- Os dois aplicativos abrem maximizados, em modo janela.
-- A engrenagem do LibrasVision fica no canto superior direito da janela, e não mais no canto da imagem.
-
-### Corrigido
-
-- Escritas simultâneas no manifesto não se perdem mais: trava entre threads e processos, inclusive na escolha do número do take.
-
 ## [0.1.0] - 2026-10-14
 
 Primeira versão pública. Base completa do sistema, **sem dados reais e sem resultados medidos**.
@@ -40,6 +18,14 @@ Primeira versão pública. Base completa do sistema, **sem dados reais e sem res
 - Rajada com extração no fim: os takes são gravados em sequência e os landmarks de todos são extraídos depois do último take ou de "Parar rajada", com limite de memória configurável (`coleta.gravacao.memoria_max_rajada_mb`).
 - Documentação: README, guias em `docs/`, ADRs, protocolo de coleta, diretrizes de privacidade e modelo de TCLE.
 - Engenharia: `pyproject.toml` com extras `dev`, ruff, mypy gradual, pre-commit, CI no GitHub Actions (Windows e Ubuntu), Dependabot e templates de issue e PR.
+- Revisão rápida no fim da rajada: cada take passa na tela com o esqueleto e só os marcados são salvos.
+- Revisão em lote na aba Revisão: marcar pendentes ou todos e aprovar ou rejeitar de uma vez.
+- Prévia de augmentation na aba Revisão: o take e 5 variações animadas, com famílias e intensidade ajustáveis e exportação de figura.
+- Trava de escrita no manifesto, entre threads e processos, inclusive na escolha do número do take.
+- Visual neutro nas duas interfaces: grafite com um único azul de destaque, sem gradientes.
+- Bancada: cabeçalho compacto, barra de ações fixa no rodapé (ações principais sempre visíveis), seções recolhíveis e barra lateral que rola em vez de cortar itens. Na Gravar, só os botões do estado atual, progresso da meta na legenda durante a rajada e "Parar e descartar o take atual".
+- O máximo de takes na rajada acompanha a memória disponível para a resolução da câmera.
+- Os dois aplicativos abrem maximizados, em modo janela; a engrenagem do LibrasVision fica no canto superior direito da janela.
 
 [Não publicado]: https://github.com/lorenzotoledo0/librasvision/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/lorenzotoledo0/librasvision/releases/tag/v0.1.0
