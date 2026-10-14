@@ -302,7 +302,7 @@ Detalhes em [docs/ROADMAP.md](docs/ROADMAP.md), nas [issues](https://github.com/
 
 ## Equipe
 
-**Autores:** Augusto Cezar Araujo Saboia, Elizeu Barbosa Souza, Lucas Caitano Barreto e Lucca Toledo.
+**Autores:** Augusto Cezar Araujo Saboia, Elizeu Barbosa Souza, Lucas Caitano Barreto e Lorenzo Toledo.
 
 **Orientação:** Prof.ª Kadidja Valéria Reginaldo de Oliveira (TCC II), Curso de Ciência da Computação. No TCC I: Prof.ª Dra. Flavia Maria.
 
