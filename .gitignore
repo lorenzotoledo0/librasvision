@@ -1,0 +1,47 @@
+# Dados e resultados NUNCA vao para o controle de versao (privacidade dos participantes).
+# Em data/ so o README.md e versionado, para documentar a estrutura esperada.
+data/*
+!data/README.md
+runs/
+publicados/
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.m4v
+*.npz
+*.npy
+*.h5
+*.keras
+*.tflite
+*.zip
+
+# Ambiente
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# Ajustes locais de cada computador
+configs/local.yaml
+configs/interface.ini
+configs/app_real_preferencias.json
+
+# Editores e sistema
+.vscode/
+.idea/
+.claude/settings.local.json
+Thumbs.db
+desktop.ini
+.DS_Store

@@ -1,0 +1,272 @@
+# =====================================================================
+# LibrasVision - configuracao central
+# Toda decisao parametrizavel do projeto fica aqui. Os modulos leem
+# este arquivo; nao ha numeros "magicos" espalhados pelo codigo.
+# Justificativas de cada escolha: docs/decisoes.md
+# =====================================================================
+
+projeto:
+  nome: LibrasVision
+  seed: 42
+
+# ---------------------------------------------------------------------
+# Vocabulario INICIAL (presets). So e usado na primeira execucao, para criar
+# data/vocabulario.json. Depois disso, classes sao criadas, editadas,
+# arquivadas e removidas pelo aplicativo (aba Vocabulario) ou por
+# scripts/vocabulario.py; mudar esta lista nao altera um vocabulario existente.
+# ---------------------------------------------------------------------
+classes:
+  sinais:
+    - biblioteca
+    - prova
+    - secretaria
+  # Classe de rejeicao: maos em repouso, movimentos aleatorios, transicoes.
+  # Evita que o tempo real force um sinal quando ninguem esta sinalizando.
+  usar_nenhum_sinal: true
+  nome_nenhum_sinal: nenhum_sinal
+
+# ---------------------------------------------------------------------
+# Caminhos (relativos a raiz do repositorio). Tudo em data/ fica fora
+# do controle de versao.
+# ---------------------------------------------------------------------
+caminhos:
+  dados: data
+  videos: data/raw_videos
+  landmarks: data/landmarks
+  landmarks_aug: data/landmarks_aug     # landmarks de videos degradados (augmentation familia D e robustez)
+  manifesto: data/manifest.csv
+  sinalizadores: data/sinalizadores.csv
+  vocabulario: data/vocabulario.json
+  auditoria: data/auditoria.log         # registro de remocoes e exclusoes (sem nomes de pessoas)
+  splits: data/splits
+  lixeira: data/lixeira
+  backup: data/backup                   # copias de seguranca de tabelas lidas com problemas
+  logs: runs/logs
+  relatorios_importacao: data/relatorios_importacao
+  relatorios: data/relatorios
+  runs: runs
+  publicados: publicados               # pacotes de modelo para o app real (13.2); fora do Git
+
+# ---------------------------------------------------------------------
+# MediaPipe Holistic (API legada mp.solutions.holistic, mediapipe 0.10.21)
+# ---------------------------------------------------------------------
+mediapipe:
+  model_complexity: 1          # 0 = mais rapido, 2 = mais preciso; 1 e o equilibrio para i5
+  min_detection_confidence: 0.5
+  min_tracking_confidence: 0.5
+  refine_face_landmarks: false # false = 468 pontos de face
+
+# ---------------------------------------------------------------------
+# Vetor de features por frame (usado na Fase 3). Definido em um so lugar.
+# ---------------------------------------------------------------------
+features:
+  pose:
+    usar: true
+    usar_visibility: true      # 33 x 4 = 132
+  maos:
+    usar: true                 # 2 x 21 x 3 = 126
+  face:
+    modo: subconjunto          # nenhuma | subconjunto | completa (468 x 3 = 1404)
+    subconjunto: [labios, sobrancelhas, contorno]
+
+# ---------------------------------------------------------------------
+# Coleta de dados (Fase 2)
+# ---------------------------------------------------------------------
+coleta:
+  camera:
+    indice: 0
+    largura: 640
+    altura: 480
+    fps: 30
+    # Ordem de tentativa no Windows. DSHOW costuma abrir mais rapido e
+    # aceitar MJPG (melhor FPS); MSMF e o fallback.
+    backends_windows: [DSHOW, MSMF, ANY]
+    forcar_mjpg: true
+  gravacao:
+    duracao_s: 3.0             # modo duracao fixa
+    duracao_max_manual_s: 8.0  # limite de seguranca do modo manual (memoria)
+    contagem_regressiva_s: 3
+    intervalo_rajada_s: 2      # pausa entre takes no modo rajada
+    # Na rajada os frames ficam em memoria ate o fim (a extracao roda depois do ultimo take).
+    # Teto para o alvo de 4 GB de RAM: 640x480 a 30 FPS por 3 s ocupa cerca de 80 MB por take.
+    memoria_max_rajada_mb: 1500
+    codec: mp4v                # codec mais confiavel no OpenCV do Windows sem dependencias
+    extensao: .mp4
+  qualidade:
+    fps_minimo: 24             # abaixo disso a take recebe aviso
+    taxa_minima_mao: 0.6       # fracao de frames com ao menos uma mao detectada
+    taxa_minima_pose: 0.8
+    brilho_minimo: 60          # media de luminancia (0-255)
+    brilho_maximo: 210
+    previa_landmarks: true     # sobrepor landmarks na pre-visualizacao
+    previa_landmarks_cada_n_frames: 3   # reduz custo de CPU na previa
+  opcoes:
+    iluminacao: [natural, artificial, mista, baixa]
+    distancia: [perto, media, longe]
+    fundo: [neutro, sala_de_aula, outro]
+    mao_dominante: [direita, esquerda]
+  metas:
+    takes_por_classe_por_sinalizador: 10
+    sinalizadores_alvo: 10
+
+# ---------------------------------------------------------------------
+# Importacao de videos ja gravados
+# ---------------------------------------------------------------------
+importacao:
+  extensoes: [.mp4, .avi, .mov, .mkv, .webm, .m4v]
+  duracao_min_s: 0.8           # abaixo: rejeitado
+  duracao_max_s: 15.0          # acima: rejeitado (provavelmente nao e um sinal isolado)
+  duracao_ideal_s: [1.5, 4.0]  # fora: aviso
+  fps_min_aceito: 15           # abaixo: rejeitado
+  altura_min: 360              # abaixo: aviso
+  amostras_validacao: 8        # frames amostrados para checar presenca de pessoa
+  taxa_minima_pessoa: 0.5      # fracao das amostras com pose detectada; abaixo: rejeitado
+  # Padroes de nome de arquivo (regex com grupos nomeados: signer, take, classe).
+  # O grupo "signer" pode ser um ID ja cadastrado (S01) ou um rotulo antigo
+  # (usuario1), que precisa de --mapa usuario1=S03.
+  padroes_nome:
+    projeto: '^(?P<signer>S\d{2,3})_(?P<take>\d+)$'
+    tcc1: '^(?P<signer>usuario\d+)_(?P<take>\d+)$'
+  padronizar:
+    ativo: false               # re-codificar para o formato do projeto (preserva original)
+    fps: 30
+    largura: 640
+    altura: 480
+
+# ---------------------------------------------------------------------
+# Extracao de landmarks em lote (Fase 3)
+# ---------------------------------------------------------------------
+extracao:
+  status_incluidos: [ok]       # quais videos do manifesto extrair (adicione 'pendente' se quiser)
+  processos: 1                 # processos em paralelo; 2 num i5 de 4 nucleos se houver RAM sobrando
+
+# ---------------------------------------------------------------------
+# Normalizacao (modulo unico: treino, avaliacao e tempo real)
+# ---------------------------------------------------------------------
+normalizacao:
+  interpolar_lacunas_max_frames: 5   # lacunas internas sem deteccao de ate N frames (a 30 FPS) sao interpoladas
+  fracao_minima_pose: 0.5            # janela com pose em menos que isso e descartada (sem referencia de ombros)
+
+# ---------------------------------------------------------------------
+# Janelas temporais
+# ---------------------------------------------------------------------
+janela:
+  fps_alvo: 30                 # todo video (e o buffer do tempo real) e reamostrado para este FPS
+  comprimento: 30              # frames por janela (1 s a 30 FPS)
+  passo: 5                     # deslocamento entre janelas no treino
+  # Selecao de janelas de um video de sinal:
+  #   todas     = todas as janelas recebem o rotulo do video (inclui repouso antes/depois do sinal)
+  #   atividade = so janelas com movimento de mao >= limiar x (maior movimento do video)
+  # Videos de nenhum_sinal sempre usam todas as janelas.
+  selecao: atividade
+  limiar_atividade: 0.5
+
+# ---------------------------------------------------------------------
+# Protocolo de avaliacao e divisao dos dados
+# ---------------------------------------------------------------------
+avaliacao:
+  protocolo: grupos_sinalizador  # grupos_sinalizador (principal) | loso | aleatorio_por_video (secundario)
+  n_folds: 5
+  fracao_validacao_sinalizadores: 0.2   # sinalizadores do treino separados para early stopping
+  fracao_validacao_videos: 0.15         # usado quando nao ha sinalizadores suficientes para separar
+
+# ---------------------------------------------------------------------
+# Dataset em memoria
+# ---------------------------------------------------------------------
+dataset:
+  batch_size: 32
+  limite_memoria_mb: 1200      # erro claro se as janelas passarem disso (alvo: maquina de 4 GB)
+
+# ---------------------------------------------------------------------
+# Modelo (Fase 4)
+# ---------------------------------------------------------------------
+modelo:
+  camadas_lstm: [64, 32]       # LSTM empilhada; a ultima nao retorna sequencia
+  dropout: 0.3                 # apos cada LSTM
+  dropout_recorrente: 0.0      # >0 desativa o kernel rapido do LSTM; manter 0 na CPU
+  densa: 0                     # unidades de uma camada densa antes da softmax (0 = sem)
+
+treino:
+  classes: null                # null = todas as classes ativas do vocabulario; ou lista, ex.: [biblioteca, prova]
+  minimos:
+    sinalizadores_por_classe: 2   # abaixo disso a classe fica bloqueada (nao ha como testar em pessoa nova)
+    classes: 2
+  ensaio: false                # true = treina mesmo abaixo dos minimos; TODAS as saidas ficam marcadas como ENSAIO
+  epocas: 150
+  paciencia: 20                # early stopping em val_loss, restaurando os melhores pesos
+  taxa_aprendizado: 0.001
+  pesos_classes: true          # compensa desbalanceamento
+  seeds: [42]                  # o treino repete o protocolo para cada seed (ablacao: 3 a 5)
+  salvar_modelos_folds: true
+
+# ---------------------------------------------------------------------
+# Data augmentation (Fase 4). Aplicada SO no treino de cada particao.
+# Opera sobre janelas ja normalizadas; transformacoes que mudam a referencia
+# corporal sao seguidas de renormalizacao (mesma regra do modulo de normalizacao).
+# ---------------------------------------------------------------------
+augmentation:
+  ativo: false                 # false = baseline. Os scripts de ablacao ligam/desligam por familia
+  modo: online                 # online (nova variacao a cada epoca) | offline (copias fixas)
+  copias_offline: 2            # so no modo offline: fator efetivo = 1 + copias
+  intensidade: media           # fraca (x0.5) | media (x1) | forte (x1.5) sobre as magnitudes abaixo
+  espacial:
+    ativo: true
+    prob: 0.8                  # probabilidade de aplicar a familia a uma janela
+    rotacao_graus: 15          # rotacao 2D unica na janela inteira, em torno do centro dos ombros
+    escala_xy: 0.1             # escala anisotropica: sx, sy em [1-v, 1+v] (proporcoes corporais)
+    cisalhamento: 0.1
+    escala_maos: 0.1           # tamanho de cada mao em torno do pulso (variacao entre pessoas)
+    deslocamento_maos: 0.05    # translacao das maos relativa ao corpo (em larguras de ombro)
+    escala_z: 0.2              # z do MediaPipe e ruidoso: so escala multiplicativa
+    espelhamento: false        # troca esquerda/direita. So com aprovacao da equipe (ver decisoes D8)
+  temporal:
+    ativo: true
+    prob: 0.5
+    warp: 0.2                  # fator de velocidade em [1-v, 1+v], volta ao comprimento fixo
+    deslocamento_max: 3        # desloca a janela ate N frames (repete as bordas)
+    remocao_frames: 0.1        # fracao de frames removidos e reinterpolados (queda de FPS)
+  ruido:
+    ativo: true
+    prob: 0.5
+    jitter_sigma: 0.01         # em larguras de ombro (~1,6 px a 160 px de ombro)
+    oclusao_mao_prob: 0.3      # chance de perder uma mao em frames contiguos
+    oclusao_max_frames: 8
+    perda_face_prob: 0.2       # chance de perder a face em frames contiguos
+  video:                       # familia D: offline, depende dos videos brutos (scripts/aumentar_videos.py)
+    ativo: false
+    variantes: [escuro, claro, desfoque, ruido_imagem, rotacao_zoom]
+
+# ---------------------------------------------------------------------
+# Ablacao e robustez (Fase 5)
+# ---------------------------------------------------------------------
+ablacao:
+  seeds: [42, 7, 2024]         # mesmas seeds e mesmo split para todas as condicoes (3 a 5)
+  metrica_principal: f1_macro_video   # f1_macro_janela | f1_macro_video | acuracia_janela | acuracia_video
+  alfa: 0.05
+  familias: [espacial, temporal, ruido, video]   # 'video' so entra se as variantes ja foram extraidas
+  intensidades: [fraca, media, forte]
+  comparar_protocolo_secundario: true  # roda o baseline tambem no split aleatorio_por_video
+
+robustez:
+  ativo: true                  # avalia cada modelo tambem em copias degradadas do TESTE
+  landmarks:                   # degradacoes aplicadas aos landmarks das janelas de teste
+    oclusao_mao: {frames: 10}            # some uma mao por 10 frames (1/3 da janela)
+    ruido: {sigma: 0.03}                 # tremor 3x maior que o da augmentation
+    queda_fps: {fracao: 0.5}             # metade dos frames removidos e reinterpolados (~15 FPS)
+    sem_face: {}                         # face ausente na janela inteira
+  video: [escuro]              # variantes de video (scripts/aumentar_videos.py) aplicadas ao teste
+
+# ---------------------------------------------------------------------
+# Inferencia em tempo real (Fase 6)
+# O MediaPipe, a janela e a normalizacao vem dos METADADOS do modelo treinado
+# (garantia de que o tempo real usa exatamente os parametros do treino).
+# ---------------------------------------------------------------------
+tempo_real:
+  modelo: null                 # pasta do modelo final; null = o mais recente em runs/*final*
+  limiar_confianca: 0.6        # abaixo disso, nenhum sinal e exibido
+  suavizacao: 5                # media movel das ultimas N predicoes
+  predizer_a_cada: 2           # roda o modelo a cada N frames processados
+  min_fracao_mao: 0.3          # janela com mao em menos que isso = "nenhum sinal" (sem rodar o modelo)
+  frames_estaveis: 3           # predicoes seguidas iguais para aceitar um sinal no texto
+  manter_texto_s: 2.0          # tempo que o ultimo sinal fica destacado
+  max_frases: 12               # quantos sinais reconhecidos ficam no historico de texto

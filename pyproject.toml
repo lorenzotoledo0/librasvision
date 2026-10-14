@@ -1,0 +1,111 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "librasvision"
+dynamic = ["version"]
+description = "Reconhecimento de sinais dinamicos de Libras com MediaPipe Holistic e LSTM (TCC II, UDF)"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+# Python 3.11 e a versao testada. 3.13+ nao funciona: TensorFlow e MediaPipe nao publicam pacotes (docs/decisoes.md, D1).
+requires-python = ">=3.10,<3.13"
+authors = [
+  { name = "Augusto Cezar Araujo Saboia" },
+  { name = "Elizeu Barbosa Souza" },
+  { name = "Lucas Caitano Barreto" },
+  { name = "Lucca Toledo" },
+]
+keywords = ["libras", "sign-language", "computer-vision", "mediapipe", "lstm", "accessibility"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "Natural Language :: Portuguese (Brazilian)",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Scientific/Engineering :: Image Recognition",
+]
+# Versoes exatas e justificativas em requirements.txt (fonte da instalacao da equipe).
+dependencies = [
+  "mediapipe==0.10.21",
+  "opencv-contrib-python==4.11.0.86",
+  "numpy==1.26.4",
+  "protobuf==4.25.9",
+  "tensorflow==2.19.1",
+  "PySide6-Essentials==6.11.2",
+  "shiboken6==6.11.2",
+  "PyYAML==6.0.3",
+  "pillow==12.3.0",
+  "scikit-learn==1.9.1",
+  "scipy==1.17.1",
+  "matplotlib==3.11.2",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.1.1",
+  "pytest-cov>=6.0",
+  "ruff==0.14.0",
+  "mypy>=1.13",
+  "pre-commit>=4.0",
+]
+
+[project.scripts]
+librasvision-lab = "libras.app.janela:main"
+librasvision = "libras.app_real.janela:main"
+
+[project.urls]
+Repository = "https://github.com/__OWNER__/librasvision"
+Issues = "https://github.com/__OWNER__/librasvision/issues"
+Documentation = "https://github.com/__OWNER__/librasvision/tree/main/docs"
+
+[tool.setuptools.dynamic]
+version = { attr = "libras.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+libras = ["ui/*.json", "ui/recursos/*.svg"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "desempenho: mede tempos da interface; sensivel a maquinas lentas (CI compartilhado)",
+]
+
+[tool.coverage.run]
+source = ["src/libras"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+# E741 (nome "l"): usado de proposito para "linha" do manifesto em todo o projeto.
+# E501: o formatador cuida do comprimento do codigo; sobram so textos longos (mensagens, caminhos SVG).
+ignore = ["E741", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["libras"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+follow_imports = "silent"
+warn_unused_ignores = true
+# Modo gradual: os modulos do nucleo sem interface sao checados no CI (ver docs/adr/0006).
+files = [
+  "src/libras/normalizacao.py",
+  "src/libras/splits.py",
+  "src/libras/decisao.py",
+  "src/libras/metricas.py",
+  "src/libras/estatistica.py",
+  "src/libras/vocabulario.py",
+  "src/libras/config.py",
+]

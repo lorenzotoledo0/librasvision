@@ -1,0 +1,37 @@
+# =====================================================================
+# LibrasVision (app real, para o usuario final) - configuracao
+# Separada do config.yaml da bancada (item 13, D19). As preferencias que o
+# usuario muda na tela (legenda, informacoes tecnicas, camera) ficam em
+# configs/app_real_preferencias.json, fora do Git.
+# Parametros de decisao (limiar, media movel, confirmacoes, minimo de maos)
+# NAO ficam aqui: vem do pacote do modelo (cartao.json), definidos na bancada.
+# =====================================================================
+
+# Pasta dos pacotes de modelo publicados pela bancada (relativa a raiz do app).
+pasta_modelos: publicados
+
+camera:
+  indice: 0
+  largura: 640
+  altura: 480
+  fps: 30
+  backends_windows: [DSHOW, MSMF, ANY]
+  forcar_mjpg: true
+
+# Guia de enquadramento (13.9-A). So informa: nunca bloqueia o reconhecimento nem muda o que o modelo
+# recebe. VALORES INICIAIS, a calibrar com os primeiros videos reais na bancada.
+enquadramento:
+  borda_mao: 0.03              # mao com algum ponto a menos de 3% da largura/altura da borda = mao cortada
+  brilho_minimo: 60            # luminancia media (0-255) de uma copia 64x36 em cinza; abaixo = pouca luz
+  visibilidade_ombro: 0.5      # visibility do MediaPipe para contar o ombro como visivel
+  janela_s: 1.0                # segundos usados para as fracoes de pose e de maos
+  histerese_s: 1.0             # a condicao dura 1 s para aparecer e 1 s sem ocorrer para sumir
+
+# Barra de informacoes tecnicas (13.8)
+informacoes_tecnicas:
+  intervalo_ms: 500            # a barra e atualizada a cada 500 ms, nao a cada frame
+  janela_latencia_s: 10        # mediana e p95 dos ultimos 10 s
+
+# Legenda (13.4): padroes; o usuario muda em Configuracoes > Legenda
+legenda:
+  tempo_para_sumir_s: 4

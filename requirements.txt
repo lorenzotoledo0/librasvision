@@ -1,0 +1,28 @@
+# LibrasVision - dependencias fixadas
+# Python suportado: 3.11 (recomendado). 3.10 e 3.12 devem funcionar, mas nao sao testados.
+# Python 3.13 e 3.14 NAO funcionam: TensorFlow e MediaPipe nao publicam pacotes para eles.
+# Verificado em 2026-10-05: existem wheels win_amd64 cp311 para mediapipe 0.10.21 e tensorflow 2.19.1.
+
+# Visao computacional
+mediapipe==0.10.21            # ultima linha com a API legada mp.solutions.holistic (removida a partir de 0.10.30 / 1.0)
+opencv-contrib-python==4.11.0.86   # dependencia do mediapipe; nao instalar opencv-python junto (conflito)
+numpy==1.26.4                 # mediapipe 0.10.21 exige numpy < 2
+protobuf==4.25.9              # mediapipe 0.10.21 exige protobuf < 5; isso limita o TensorFlow a 2.19.x
+
+# Aprendizado profundo
+tensorflow==2.19.1            # no Windows nativo roda em CPU (suficiente para o modelo LSTM do projeto)
+
+# Interface (aplicativo unico). Essentials ja inclui QtWidgets e QtSvg; sem os Addons (~70 MB a menos).
+# Wheel abi3 (cp310+) com win_amd64; pip check sem conflitos com as versoes acima (verificado em 2026-10-06).
+PySide6-Essentials==6.11.2
+shiboken6==6.11.2
+
+# Utilitarios
+PyYAML==6.0.3
+pillow==12.3.0                # exibicao de video na interface Tkinter
+scikit-learn==1.9.1           # metricas e divisao agrupada por sinalizador
+scipy==1.17.1                 # interpolacao e testes estatisticos
+matplotlib==3.11.2            # graficos para o TCC
+
+# Testes
+pytest==9.1.1
