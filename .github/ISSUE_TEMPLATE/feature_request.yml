@@ -1,0 +1,29 @@
+name: Proposta de funcionalidade
+description: Sugira uma melhoria ou funcionalidade nova.
+labels: ["feature"]
+body:
+  - type: textarea
+    id: problema
+    attributes:
+      label: Problema
+      description: Que necessidade esta proposta resolve? Para quem?
+    validations:
+      required: true
+  - type: textarea
+    id: proposta
+    attributes:
+      label: Proposta
+    validations:
+      required: true
+  - type: textarea
+    id: alternativas
+    attributes:
+      label: Alternativas consideradas
+  - type: checkboxes
+    id: regras
+    attributes:
+      label: Regras do projeto
+      options:
+        - label: A proposta não cria um segundo caminho de normalização, janelas ou decisão.
+        - label: A proposta não envia imagens, vídeos ou dados pessoais para fora do computador.
+        - label: Nenhum retorno ao usuário depende de som.

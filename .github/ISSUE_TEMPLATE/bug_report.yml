@@ -1,0 +1,48 @@
+name: Relato de erro
+description: Algo não funciona como deveria.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Não anexe vídeos, imagens de pessoas, nomes ou caminhos pessoais. Use apenas IDs anônimos (S01, S02...).
+  - type: dropdown
+    id: app
+    attributes:
+      label: Onde aconteceu
+      options:
+        - LibrasVision Lab (bancada)
+        - LibrasVision (app do usuário final)
+        - Linha de comando (scripts/)
+        - Instalação
+    validations:
+      required: true
+  - type: textarea
+    id: descricao
+    attributes:
+      label: O que aconteceu
+      description: Descreva o erro e o que você esperava.
+    validations:
+      required: true
+  - type: textarea
+    id: passos
+    attributes:
+      label: Passos para reproduzir
+      placeholder: |
+        1. Abrir a aba ...
+        2. Clicar em ...
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Trecho do log
+      description: Conteúdo relevante de runs/logs/app.log. Confira se não há dados pessoais.
+      render: text
+  - type: input
+    id: ambiente
+    attributes:
+      label: Ambiente
+      placeholder: "Windows 11, Python 3.11.9, i5 8a geração, 8 GB, webcam 720p"
+    validations:
+      required: true

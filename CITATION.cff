@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "Se usar este software, cite-o com os metadados abaixo."
+title: "LibrasVision: sistema de visão computacional para o reconhecimento de sinais dinâmicos da Libras em ambientes educacionais"
+type: software
+version: 0.1.0
+date-released: "2026-10-14"
+license: MIT
+repository-code: "https://github.com/__OWNER__/librasvision"
+keywords:
+  - libras
+  - sign-language
+  - computer-vision
+  - mediapipe
+  - lstm
+  - accessibility
+authors:
+  - given-names: Augusto Cezar Araujo
+    family-names: Saboia
+  - given-names: Elizeu Barbosa
+    family-names: Souza
+  - given-names: Lucas Caitano
+    family-names: Barreto
+  - given-names: Lucca
+    family-names: Toledo

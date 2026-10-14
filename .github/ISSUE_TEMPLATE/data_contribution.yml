@@ -1,0 +1,31 @@
+name: Contribuição de dados
+description: Quero participar da coleta de sinais ou indicar sinalizadores.
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Não anexe vídeos aqui.** Dados de pessoas nunca entram no repositório.
+        Esta issue serve só para combinar o processo com a equipe: TCLE assinado, agendamento e protocolo de coleta (docs/DATASET.md).
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: Tipo de contribuição
+      options:
+        - Sou sinalizador(a) de Libras e quero gravar
+        - Sou intérprete ou professor(a) de Libras e quero revisar sinais
+        - Tenho vídeos gravados com consentimento e quero oferecer
+    validations:
+      required: true
+  - type: textarea
+    id: sinais
+    attributes:
+      label: Sinais de interesse
+      description: Quais sinais do vocabulário acadêmico você pode gravar ou revisar?
+  - type: checkboxes
+    id: consentimento
+    attributes:
+      label: Consentimento
+      options:
+        - label: Entendo que só participo após assinar o TCLE e que posso retirar o consentimento a qualquer momento.
+          required: true
