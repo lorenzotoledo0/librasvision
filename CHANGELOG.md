@@ -19,5 +19,5 @@ Primeira versão pública. Base completa do sistema, **sem dados reais e sem res
 - Documentação: README, guias em `docs/`, ADRs, protocolo de coleta, diretrizes de privacidade e modelo de TCLE.
 - Engenharia: `pyproject.toml` com extras `dev`, ruff, mypy gradual, pre-commit, CI no GitHub Actions (Windows e Ubuntu), Dependabot e templates de issue e PR.
 
-[Não publicado]: https://github.com/__OWNER__/librasvision/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/__OWNER__/librasvision/releases/tag/v0.1.0
+[Não publicado]: https://github.com/lorenzotoledo0/librasvision/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/lorenzotoledo0/librasvision/releases/tag/v0.1.0

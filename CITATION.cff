@@ -5,7 +5,7 @@ type: software
 version: 0.1.0
 date-released: "2026-10-14"
 license: MIT
-repository-code: "https://github.com/__OWNER__/librasvision"
+repository-code: "https://github.com/lorenzotoledo0/librasvision"
 keywords:
   - libras
   - sign-language

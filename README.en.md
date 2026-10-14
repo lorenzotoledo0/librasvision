@@ -2,7 +2,7 @@
 
 Computer vision recognition of dynamic signs in Brazilian Sign Language (Libras), with real-time sign-to-text captions on commodity hardware.
 
-[![CI](https://github.com/__OWNER__/librasvision/actions/workflows/ci.yml/badge.svg)](https://github.com/__OWNER__/librasvision/actions/workflows/ci.yml)
+[![CI](https://github.com/lorenzotoledo0/librasvision/actions/workflows/ci.yml/badge.svg)](https://github.com/lorenzotoledo0/librasvision/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](docs/adr/0001-python-3-11.md)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -30,7 +30,7 @@ LibrasVision is an undergraduate thesis project (TCC II, Computer Science, Centr
 Python 3.11 is required, because TensorFlow and MediaPipe do not ship wheels for 3.13 or 3.14.
 
 ```powershell
-git clone https://github.com/__OWNER__/librasvision.git
+git clone https://github.com/lorenzotoledo0/librasvision.git
 cd librasvision
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 .\LibrasVisionLab.bat

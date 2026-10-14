@@ -58,9 +58,9 @@ librasvision-lab = "libras.app.janela:main"
 librasvision = "libras.app_real.janela:main"
 
 [project.urls]
-Repository = "https://github.com/__OWNER__/librasvision"
-Issues = "https://github.com/__OWNER__/librasvision/issues"
-Documentation = "https://github.com/__OWNER__/librasvision/tree/main/docs"
+Repository = "https://github.com/lorenzotoledo0/librasvision"
+Issues = "https://github.com/lorenzotoledo0/librasvision/issues"
+Documentation = "https://github.com/lorenzotoledo0/librasvision/tree/main/docs"
 
 [tool.setuptools.dynamic]
 version = { attr = "libras.__version__" }

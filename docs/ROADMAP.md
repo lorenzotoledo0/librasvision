@@ -1,6 +1,6 @@
 # Roadmap
 
-O acompanhamento detalhado fica nas [issues](https://github.com/__OWNER__/librasvision/issues) e nos [milestones](https://github.com/__OWNER__/librasvision/milestones). Esta página resume as etapas.
+O acompanhamento detalhado fica nas [issues](https://github.com/lorenzotoledo0/librasvision/issues) e nos [milestones](https://github.com/lorenzotoledo0/librasvision/milestones). Esta página resume as etapas.
 
 ## v0.1.0: Base (concluída)
 

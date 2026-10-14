@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Dúvidas e ideias
-    url: https://github.com/__OWNER__/librasvision/discussions
+    url: https://github.com/lorenzotoledo0/librasvision/discussions
     about: Perguntas de uso e propostas ainda em discussão.
   - name: Segurança e privacidade
-    url: https://github.com/__OWNER__/librasvision/security/advisories/new
+    url: https://github.com/lorenzotoledo0/librasvision/security/advisories/new
     about: Reporte privado. Não abra issue pública para esses casos.

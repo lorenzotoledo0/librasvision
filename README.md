@@ -2,7 +2,7 @@
 
 Reconhecimento de sinais dinâmicos da Libras por visão computacional, com tradução para texto em tempo real, em computador comum.
 
-[![CI](https://github.com/__OWNER__/librasvision/actions/workflows/ci.yml/badge.svg)](https://github.com/__OWNER__/librasvision/actions/workflows/ci.yml)
+[![CI](https://github.com/lorenzotoledo0/librasvision/actions/workflows/ci.yml/badge.svg)](https://github.com/lorenzotoledo0/librasvision/actions/workflows/ci.yml)
 [![Licença: MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue.svg)](LICENSE)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](docs/adr/0001-python-3-11.md)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
@@ -144,7 +144,7 @@ O Python 3.13 e o 3.14 não funcionam, porque TensorFlow e MediaPipe não public
 2. Clone e instale:
 
 ```powershell
-git clone https://github.com/__OWNER__/librasvision.git
+git clone https://github.com/lorenzotoledo0/librasvision.git
 cd librasvision
 powershell -ExecutionPolicy Bypass -File .\scripts\setup_windows.ps1
 ```
@@ -163,7 +163,7 @@ py -3.11 -m venv .venv
 ### Linux e macOS
 
 ```bash
-git clone https://github.com/__OWNER__/librasvision.git
+git clone https://github.com/lorenzotoledo0/librasvision.git
 cd librasvision
 bash scripts/setup_unix.sh
 ```
@@ -290,7 +290,7 @@ O resultado do TCC I (97%) veio de um protótipo descartado e de uma avaliação
 - [ ] v0.4.0: app real (medição no i5, distribuição, estudo para mobile, demonstração)
 - [ ] v1.0.0: entrega do TCC
 
-Detalhes em [docs/ROADMAP.md](docs/ROADMAP.md), nas [issues](https://github.com/__OWNER__/librasvision/issues) e nos [milestones](https://github.com/__OWNER__/librasvision/milestones).
+Detalhes em [docs/ROADMAP.md](docs/ROADMAP.md), nas [issues](https://github.com/lorenzotoledo0/librasvision/issues) e nos [milestones](https://github.com/lorenzotoledo0/librasvision/milestones).
 
 ## Contribuir, citar e licença
 

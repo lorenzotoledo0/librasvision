@@ -19,7 +19,7 @@ Guia do zero até a primeira gravação e o primeiro treino. Para o roteiro comp
 Instale o Python 3.11 ("Windows installer (64-bit)" em <https://www.python.org/downloads/windows/>), mantendo as opções **py launcher** e **tcl/tk and IDLE**. Ele convive com outras versões já instaladas.
 
 ```powershell
-git clone https://github.com/__OWNER__/librasvision.git
+git clone https://github.com/lorenzotoledo0/librasvision.git
 cd librasvision
 .\scripts\setup_windows.ps1
 ```
@@ -35,7 +35,7 @@ Alternativa sem PowerShell: dê dois cliques em `instalar.bat`.
 ### Linux
 
 ```bash
-git clone https://github.com/__OWNER__/librasvision.git
+git clone https://github.com/lorenzotoledo0/librasvision.git
 cd librasvision
 bash scripts/setup_unix.sh
 ```
