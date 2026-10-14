@@ -43,6 +43,7 @@ from ...ui.dinamica import Colunas
 from ...vocabulario import Vocabulario
 from ..base import (
     Pagina,
+    Secao,
     TelaVideo,
     botao,
     encerrar_em_segundo_plano,
@@ -50,7 +51,6 @@ from ..base import (
     formulario,
     iniciar_tarefa,
     linha,
-    painel,
     rotulo,
 )
 
@@ -85,10 +85,11 @@ class PaginaClasse(Pagina):
         self._cont = 0
         self._extrator = None
 
-        h = Colunas(950)
-        h.setSpacing(14)
+        h = Colunas(760)
+        h.setSpacing(16)
         esq = QVBoxLayout()
-        self.tela = TelaVideo("Câmera desligada")
+        esq.setSpacing(8)
+        self.tela = TelaVideo("Câmera desligada")  # ocupa a altura que sobrar (a pagina cabe na tela)
         esq.addWidget(self.tela, 1)
         self.barra = QProgressBar()
         self.barra.setVisible(False)
@@ -104,14 +105,13 @@ class PaginaClasse(Pagina):
         self.lista_rajada.currentRowChanged.connect(self._ver_take_rajada)
         self.lista_rajada.itemChanged.connect(self._marcacao_mudou)
         esq.addWidget(self.lista_rajada)
-        self.bt_salvar_raj = botao("Salvar marcados", primario=True, acao=self._salvar_revisados)
-        self.bt_marcar_raj = botao("Marcar todos", acao=lambda: self._marcar_rajada(True))
-        self.bt_desmarcar_raj = botao("Desmarcar todos", acao=lambda: self._marcar_rajada(False))
-        esq.addLayout(linha(self.bt_salvar_raj, self.bt_marcar_raj, self.bt_desmarcar_raj, esticar_fim=False))
         h.addLayout(esq, 3)
 
-        p, lay = painel()
-        lay.addWidget(rotulo("Take", "titulo_painel"))
+        op = self.cfg["coleta"]["opcoes"]
+        dir_ = QVBoxLayout()
+        dir_.setSpacing(12)
+        # ---- take: o que muda a cada gravacao
+        self.sec_take = Secao("Take", recolhivel=False)
         f = formulario()
         self.cb_sig = QComboBox()
         self.cb_sig.currentIndexChanged.connect(self._atualizar_classes)
@@ -119,7 +119,18 @@ class PaginaClasse(Pagina):
         self.cb_cls.currentIndexChanged.connect(self._mostrar_meta)
         self.nova = QLineEdit()
         self.nova.setPlaceholderText("ex.: sala de aula")
-        op = self.cfg["coleta"]["opcoes"]
+        f.addRow("Sinalizador", self.cb_sig)
+        f.addRow("Palavra", self.cb_cls)
+        h_nova = linha(self.nova, botao("Criar", acao=self.criar_palavra, dica="Criar palavra"), esticar_fim=False)
+        h_nova.setStretch(0, 1)
+        f.addRow("Nova palavra", h_nova)
+        self.sec_take.conteudo.addLayout(f)
+        self.meta = rotulo("", "secundario", quebra=True)
+        self.sec_take.conteudo.addWidget(self.meta)
+        dir_.addWidget(self.sec_take)
+        # ---- condicoes: mudam pouco numa sessao; fechadas mostram o resumo
+        self.sec_cond = Secao("Condições", aberta=False)
+        f2 = formulario()
         self.cb_ilum, self.cb_dist, self.cb_fundo, self.cb_mao = (QComboBox() for _ in range(4))
         for cb, k in (
             (self.cb_ilum, "iluminacao"),
@@ -128,20 +139,18 @@ class PaginaClasse(Pagina):
             (self.cb_mao, "mao_dominante"),
         ):
             cb.addItems(op[k])
+            cb.currentIndexChanged.connect(self._resumir_secoes)
         self.obs = QLineEdit()
-        f.addRow("Sinalizador", self.cb_sig)
-        f.addRow("Palavra", self.cb_cls)
-        h_nova = linha(self.nova, botao("Criar palavra", acao=self.criar_palavra), esticar_fim=False)
-        h_nova.setStretch(0, 1)
-        f.addRow("Nova palavra", h_nova)
-        f.addRow("Iluminação", self.cb_ilum)
-        f.addRow("Distância", self.cb_dist)
-        f.addRow("Fundo", self.cb_fundo)
-        f.addRow("Mão dominante", self.cb_mao)
-        f.addRow("Observação", self.obs)
-        lay.addLayout(f)
-        self.meta = rotulo("", "secundario", quebra=True)
-        lay.addWidget(self.meta)
+        self.obs.textChanged.connect(self._resumir_secoes)
+        f2.addRow("Iluminação", self.cb_ilum)
+        f2.addRow("Distância", self.cb_dist)
+        f2.addRow("Fundo", self.cb_fundo)
+        f2.addRow("Mão dominante", self.cb_mao)
+        f2.addRow("Observação", self.obs)
+        self.sec_cond.conteudo.addLayout(f2)
+        dir_.addWidget(self.sec_cond)
+        # ---- opcoes da gravacao
+        self.sec_opc = Secao("Opções", aberta=False)
         g = QButtonGroup(self)
         dur = self.cfg["coleta"]["gravacao"]["duracao_s"]
         self.r_fixo = QRadioButton(f"Duração fixa ({dur:g} s)")
@@ -149,21 +158,29 @@ class PaginaClasse(Pagina):
         self.r_fixo.setChecked(True)
         g.addButton(self.r_fixo)
         g.addButton(self.r_manual)
-        lay.addWidget(self.r_fixo)
-        lay.addWidget(self.r_manual)
         self.ck_lm = QCheckBox("Mostrar landmarks na prévia")
         self.ck_lm.setChecked(bool(self.cfg["coleta"]["qualidade"]["previa_landmarks"]))
         self.ck_guia = QCheckBox("Guia de enquadramento")
         self.ck_guia.setChecked(True)
-        lay.addWidget(self.ck_lm)
-        lay.addWidget(self.ck_guia)
+        for w in (self.r_fixo, self.r_manual, self.ck_lm, self.ck_guia):
+            self.sec_opc.conteudo.addWidget(w)
+            w.toggled.connect(self._resumir_secoes)
+        dir_.addWidget(self.sec_opc)
+        dir_.addStretch(1)
+        h.addLayout(dir_, 2)
+        self.raiz.addWidget(h, 1)
+
+        # ---- barra de acoes fixa: so os botoes que valem no estado atual (ver _ajustar)
         self.sp_rajada = QSpinBox()
         self.sp_rajada.setRange(2, 50)
         self.sp_rajada.setValue(5)
-        self.sp_rajada.setToolTip("O máximo acompanha a memória disponível para a resolução da câmera.")
-        lay.addLayout(linha(rotulo("Takes na rajada"), self.sp_rajada))
-        self.bt_cam = botao("Ligar câmera", primario=True, acao=self.ligar, dica="Atalho: C")
-        self.bt_grav = botao("Gravar take (Espaço)", acao=self.iniciar_take)
+        self.sp_rajada.setSuffix(" takes")
+        self.sp_rajada.setToolTip(
+            "Takes na rajada. O máximo acompanha a memória disponível para a resolução da câmera."
+        )
+        self.sp_rajada.setAccessibleName("Takes na rajada")
+        self.bt_cam = botao("Ligar câmera", acao=self.ligar, dica="Atalho: C")
+        self.bt_grav = botao("Gravar take (Espaço)", primario=True, acao=self.iniciar_take)
         self.bt_raj = botao("Gravar rajada", acao=self.iniciar_rajada)
         self.bt_parar = botao(
             "Parar rajada", acao=self.parar_rajada, dica="O take em gravação termina e é aproveitado."
@@ -176,14 +193,26 @@ class PaginaClasse(Pagina):
         self.bt_aceitar = botao("Aceitar (Enter)", primario=True, acao=self.aceitar)
         self.bt_desc = botao("Descartar (Esc)", acao=self.descartar)
         self.bt_regr = botao("Regravar (R)", acao=self.regravar)
-        for b in (self.bt_cam, self.bt_grav, self.bt_raj, self.bt_parar, self.bt_parar_desc):
-            lay.addWidget(b)
-        lay.addLayout(linha(self.bt_aceitar, self.bt_desc, esticar_fim=False))
-        lay.addWidget(self.bt_regr)
-        lay.addWidget(botao("Importar vídeos existentes...", acao=self.importar))
-        lay.addStretch(1)
-        h.addWidget(p, 2)
-        self.raiz.addWidget(h, 1)
+        self.bt_salvar_raj = botao("Salvar marcados", primario=True, acao=self._salvar_revisados)
+        self.bt_marcar_raj = botao("Marcar todos", acao=lambda: self._marcar_rajada(True))
+        self.bt_desmarcar_raj = botao("Desmarcar todos", acao=lambda: self._marcar_rajada(False))
+        self.bt_importar = botao("Importar vídeos...", variante="fantasma", acao=self.importar)
+        self.adicionar_acao(
+            self.bt_cam,
+            self.bt_grav,
+            self.bt_raj,
+            self.sp_rajada,
+            self.bt_parar,
+            self.bt_parar_desc,
+            self.bt_aceitar,
+            self.bt_desc,
+            self.bt_regr,
+            self.bt_salvar_raj,
+            self.bt_marcar_raj,
+            self.bt_desmarcar_raj,
+            self.bt_importar,
+        )
+        self._resumir_secoes()
 
         for tecla, f_ in (
             (Qt.Key_Space, self._tecla_espaco),
@@ -317,8 +346,29 @@ class PaginaClasse(Pagina):
         )
 
     # ------------------------------------------------------------------
+    def _resumir_secoes(self, *_a) -> None:
+        cond = [self.cb_ilum.currentText(), self.cb_dist.currentText(), self.cb_fundo.currentText()]
+        cond.append(f"mão {self.cb_mao.currentText()}")
+        if self.obs.text().strip():
+            cond.append("com observação")
+        self.sec_cond.definir_resumo(" · ".join(cond))
+        opc = [self.r_fixo.text().lower() if self.r_fixo.isChecked() else "manual"]
+        opc += [n for ck, n in ((self.ck_lm, "landmarks"), (self.ck_guia, "guia")) if ck.isChecked()]
+        self.sec_opc.definir_resumo(" · ".join(opc))
+
     def _ajustar(self) -> None:
         e = self.estado
+        rev, rev_raj = e == "revisao", e == "revisao_rajada"
+        em_rajada = self._em_rajada and e in ("contagem", "gravando", "intervalo")
+        normal = not (rev or rev_raj or em_rajada)
+        for w in (self.bt_cam, self.bt_grav, self.bt_raj, self.sp_rajada):
+            w.setVisible(normal)
+        for w in (self.bt_parar, self.bt_parar_desc):
+            w.setVisible(em_rajada)
+        for w in (self.bt_aceitar, self.bt_desc):
+            w.setVisible(rev or rev_raj)
+        self.bt_regr.setVisible(rev)
+        self.bt_importar.setVisible(normal)
         self.bt_cam.setText("Desligar câmera" if e != "parado" else "Ligar câmera")
         self.bt_cam.setEnabled(e in ("parado", "previa"))
         self.bt_grav.setEnabled(e == "previa" or (e == "gravando" and self._modo_manual))

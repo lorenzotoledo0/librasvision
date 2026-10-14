@@ -120,17 +120,17 @@ class PaginaClasse(Pagina):
             lay.addStretch(1)
             h.addWidget(p, 1)
         self.raiz.addWidget(h, 1)
-        self.raiz.addLayout(
-            linha(
-                botao("Salvar", primario=True, acao=self.salvar),
-                botao("Restaurar padrão", acao=self.restaurar),
-                botao(
-                    "Abrir pasta de logs",
-                    acao=lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.cfg.caminho("logs")))),
-                ),
-            )
-        )
         self.raiz.addStretch(1)
+        # barra fixa: salvar fica sempre a vista, mesmo com a pagina rolada
+        self.adicionar_acao(
+            botao("Salvar", primario=True, acao=self.salvar),
+            botao("Restaurar padrão", acao=self.restaurar),
+            botao(
+                "Abrir pasta de logs",
+                variante="fantasma",
+                acao=lambda: QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.cfg.caminho("logs")))),
+            ),
+        )
 
     def _aplicar_aparencia(self) -> None:
         if getattr(self, "_carregando", False):
