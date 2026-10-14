@@ -14,7 +14,7 @@ tensorflow==2.19.1            # no Windows nativo roda em CPU (suficiente para o
 
 # Interface (aplicativo unico). Essentials ja inclui QtWidgets e QtSvg; sem os Addons (~70 MB a menos).
 # Wheel abi3 (cp310+) com win_amd64; pip check sem conflitos com as versoes acima (verificado em 2026-10-06).
-PySide6-Essentials==6.11.2
+PySide6-Essentials==6.12.0
 shiboken6==6.11.2
 
 # Utilitarios
