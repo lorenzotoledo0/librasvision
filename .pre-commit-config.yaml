@@ -1,0 +1,26 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+        exclude: \.md$
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: detect-private-key
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.0
+    hooks:
+      - id: ruff-check
+        args: ["--fix"]
+      - id: ruff-format
+  # Bloqueia arquivos de dados de pessoas, mesmo que alguem force o add.
+  - repo: local
+    hooks:
+      - id: sem-dados-de-pessoas
+        name: sem videos, landmarks ou modelos no Git
+        entry: arquivos de dados nao podem ser versionados (docs/DATA_PRIVACY.md)
+        language: fail
+        files: \.(mp4|avi|mov|mkv|webm|m4v|npz|npy|h5|keras|tflite)$
