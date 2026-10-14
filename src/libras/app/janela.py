@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QFrame,
     QHBoxLayout,
     QMainWindow,
+    QScrollArea,
     QSizePolicy,
     QStackedWidget,
     QToolButton,
@@ -36,7 +37,7 @@ from .base import Pagina, botao, rotulo  # noqa: E402
 
 log = logging.getLogger("libras.app")
 LIMITE_TROCA_MS = 100  # meta do item 7
-LARGURA_BARRA, LARGURA_BARRA_RECOLHIDA = 240, 96
+LARGURA_BARRA, LARGURA_BARRA_RECOLHIDA = 216, 88
 RECOLHER_ABAIXO_DE = tema.FAIXAS["expandida_min_px"]
 DURACAO_TRANSICAO_MS = int(tema.TOKENS["movimento"]["duracao_ms"])
 
@@ -164,13 +165,24 @@ class JanelaPrincipal(QMainWindow):
         self.bt_menu.clicked.connect(self.alternar_barra)
         bl.addWidget(self.bt_menu)
         self.lb_marca = rotulo("LibrasVision Lab", "marca")
-        self.lb_marca_sub = rotulo("Reconhecimento de sinais de Libras", "marca_sub", quebra=True)
+        self.lb_marca_sub = rotulo("Bancada da equipe", "marca_sub")
         bl.addWidget(self.lb_marca)
         bl.addWidget(self.lb_marca_sub)
         self.assinatura = QFrame()
         self.assinatura.setObjectName("assinatura")
         bl.addWidget(self.assinatura)
-        bl.addSpacing(8)
+        bl.addSpacing(6)
+        # itens numa area com rolagem propria: em janela baixa a lista rola em vez de cortar o ultimo item
+        self.nav_rolagem = QScrollArea()
+        self.nav_rolagem.setObjectName("nav_rolagem")
+        self.nav_rolagem.setWidgetResizable(True)
+        self.nav_rolagem.setFrameShape(QFrame.NoFrame)
+        self.nav_rolagem.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        lista = QWidget()
+        lista.setObjectName("nav_lista")
+        nl = QVBoxLayout(lista)
+        nl.setContentsMargins(0, 0, 0, 0)
+        nl.setSpacing(0)
         self.grupo = QButtonGroup(self)
         self.grupo.setExclusive(True)
         self.botoes: dict[str, QToolButton] = {}
@@ -178,10 +190,13 @@ class JanelaPrincipal(QMainWindow):
             b = _botao_nav(chave, texto, ic, f"{texto} (Ctrl+{(i + 1) % 10})")
             b.clicked.connect(lambda _=False, k=chave: self.ir_para(k))
             self.grupo.addButton(b)
-            bl.addWidget(b)
+            nl.addWidget(b)
             self.botoes[chave] = b
-        bl.addStretch(1)
-        self.lb_versao = rotulo(f"  versão {__version__}", "secundario")
+        nl.addStretch(1)
+        self.nav_rolagem.setWidget(lista)
+        bl.addWidget(self.nav_rolagem, 1)
+        self.lb_versao = rotulo(f"versão {__version__}", "secundario")
+        self.lb_versao.setContentsMargins(16, 6, 16, 0)
         bl.addWidget(self.lb_versao)
         h.addWidget(self.barra)
 
@@ -323,7 +338,7 @@ class JanelaPrincipal(QMainWindow):
         self.barra.setVisible(not compacta)
         self.barra_inferior.setVisible(compacta)
         self.barra.setFixedWidth(LARGURA_BARRA_RECOLHIDA if rec else LARGURA_BARRA)
-        for w in (self.lb_marca, self.lb_marca_sub, self.lb_versao):
+        for w in (self.lb_marca, self.lb_marca_sub, self.lb_versao, self.assinatura):
             w.setVisible(not rec)
         estilo = Qt.ToolButtonTextUnderIcon if rec else Qt.ToolButtonTextBesideIcon
         for chave, texto, _ in PAGINAS:

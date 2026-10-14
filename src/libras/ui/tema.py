@@ -228,7 +228,8 @@ def folha_de_estilo(escala: float | None = None, faixa: str | None = None) -> st
     c = CORES
     toque = ESTADO["faixa"] in ("compacta", "media")
     # altura minima do conteudo (sem padding e borda) para chegar ao alvo de 44 px
-    alt_botao = ALVO_TOQUE - 2 * 9 - 2 if toque else 20
+    pad_botao = ESPACO[2] - 1
+    alt_botao = ALVO_TOQUE - 2 * pad_botao - 2 if toque else 20
     alt_campo = ALVO_TOQUE - 2 * 8 - 2 if toque else 22
     alt_check = ALVO_TOQUE if toque else 24
     r_p, r_m, r_g = RAIO["p"], RAIO["m"], RAIO["g"]
@@ -246,20 +247,20 @@ def folha_de_estilo(escala: float | None = None, faixa: str | None = None) -> st
                 "QPushButton, QToolButton#acao",
                 {
                     "normal": f"background: {c['painel2']}; color: {c['texto']}; border: 1px solid {c['borda_controle']}; "
-                    f"border-radius: {r_m}px; padding: {e[2] + 1}px {e[4]}px; min-height: {alt_botao}px; "
+                    f"border-radius: {r_m}px; padding: {pad_botao}px {e[3] + 2}px; min-height: {alt_botao}px; "
                     f"font-size: {px('corpo')}px; font-weight: 500;",
-                    "hover": f"background: {c['hover']}; border-color: {c['acento1']};",
-                    "pressionado": f"background: {c['pressionado']}; border-color: {c['acento1']};",
+                    "hover": f"background: {c['hover']}; border-color: {c['texto3']};",
+                    "pressionado": f"background: {c['pressionado']}; border-color: {c['texto3']};",
                     "foco": f"border: 2px solid {c['foco']};",
                     "desabilitado": f"color: {c['desabilitado']}; border-color: {c['borda']}; background: {c['painel']};",
                 },
             ),
-            # primario: rotulo em texto grande e negrito (>= 18,66 px), exigencia de contraste 3:1 (WCAG 1.4.3)
+            # primario: azul solido; texto branco a 5,2:1 (WCAG 1.4.3 para texto normal)
             _estados(
                 "QPushButton#primario",
                 {
-                    "normal": f"background: {grad}; border: 2px solid transparent; color: {c['sobre_acento']}; "
-                    f"font-weight: 700; font-size: {max(19, px('corpo'))}px;",
+                    "normal": f"background: {grad}; border: 1px solid transparent; color: {c['sobre_acento']}; "
+                    f"font-weight: 600;",
                     "hover": f"background: {grad_h};",
                     "pressionado": f"background: {grad_p};",
                     "foco": f"border: 2px solid {c['foco']};",
@@ -311,14 +312,24 @@ def folha_de_estilo(escala: float | None = None, faixa: str | None = None) -> st
     /* ---- navegacao ---- */
     QFrame#barra_lateral {{ background: {c["painel"]}; border-right: 1px solid {c["borda"]}; }}
     QFrame#barra_inferior {{ background: {c["painel"]}; border-top: 1px solid {c["borda"]}; }}
-    QLabel#marca {{ font-size: {px("marca")}px; font-weight: 700; padding: {e[4]}px {e[4]}px 0 {e[4]}px; }}
-    QLabel#marca_sub {{ color: {c["texto2"]}; font-size: {px("legenda")}px; padding: {e[1]}px {e[4]}px {e[4]}px; }}
-    QFrame#assinatura {{ background: {gradiente_rampa()}; border: none; min-height: 3px; max-height: 3px; }}
+    QLabel#marca {{ font-size: {px("marca")}px; font-weight: 600; padding: {e[3]}px {e[4]}px {e[1]}px {e[4]}px; }}
+    QLabel#marca_sub {{ color: {c["texto2"]}; font-size: {px("legenda")}px; padding: 0 {e[4]}px {e[3]}px; }}
+    QFrame#assinatura {{ background: {c["borda"]}; border: none; min-height: 1px; max-height: 1px; }}
+    QScrollArea#nav_rolagem, QWidget#nav_lista {{ background: transparent; border: none; }}
+    QFrame#cabecalho_pagina {{ background: {c["fundo"]}; border-bottom: 1px solid {c["borda"]}; }}
+    QFrame#barra_acoes {{ background: {c["painel"]}; border-top: 1px solid {c["borda"]}; }}
+    QToolButton#cabeca_secao {{ background: transparent; border: none; padding: 2px 0; text-align: left;
+        font-size: {px("titulo_secao")}px; font-weight: 600; color: {c["texto"]}; min-height: 28px; }}
+    QToolButton#cabeca_secao:focus {{ color: {c["foco"]}; }}
+    QToolButton#bt_icone {{ background: transparent; border: 1px solid transparent; border-radius: {r_m}px;
+        padding: {e[1]}px; }}
+    QToolButton#bt_icone:hover {{ background: {c["hover"]}; }}
+    QToolButton#bt_icone:focus {{ border: 2px solid {c["foco"]}; }}
     {
         _estados(
             "QToolButton#navitem",
             {
-                "normal": f"text-align: left; padding: {e[2] + 2}px {e[3]}px; margin: 2px {e[2]}px; border: 2px solid "
+                "normal": f"text-align: left; padding: {e[2] + 2}px {e[3]}px; margin: 1px {e[2]}px; border: 2px solid "
                 f"transparent; border-radius: {r_m}px; color: {c['texto2']}; background: transparent; "
                 f"font-size: {px('corpo')}px; min-height: {ALVO_TOQUE - 2 * (e[2] + 2) - 4}px;",
                 "hover": f"background: {c['painel2']}; color: {c['texto']};",
@@ -328,8 +339,8 @@ def folha_de_estilo(escala: float | None = None, faixa: str | None = None) -> st
         )
     }
     QToolButton#navitem:checked, QToolButton#navitem[estado="ativo"] {{ background: {grad_nav};
-        color: {c["sobre_acento"]}; font-weight: 700; }}
-    QToolButton#navitem[modo="trilho"] {{ padding: {e[2]}px {e[1]}px; margin: 2px {e[1]}px; font-size: {
+        color: {c["texto"]}; font-weight: 600; border-left: 3px solid {c["acento1"]}; }}
+    QToolButton#navitem[modo="trilho"] {{ padding: {e[1] + 2}px {e[1]}px; margin: 1px {e[1]}px; font-size: {
         px("legenda")
     }px; }}
     QToolButton#navitem[modo="inferior"] {{ padding: {e[1]}px 0; margin: {e[1]}px 2px; font-size: {px("legenda")}px; }}
@@ -349,11 +360,11 @@ def folha_de_estilo(escala: float | None = None, faixa: str | None = None) -> st
     QLabel#tela_video {{ background: {c["video"]}; border-radius: {r_g}px; color: {c["texto3"]}; }}
 
     /* ---- texto ---- */
-    QLabel#titulo_pagina {{ font-size: {px("titulo_pagina")}px; font-weight: 700; }}
+    QLabel#titulo_pagina {{ font-size: {px("titulo_pagina")}px; font-weight: 600; }}
     QLabel#subtitulo, QLabel#secundario, QLabel#dica {{ color: {c["texto2"]}; }}
     QLabel#dica {{ padding-left: {e[1]}px; border-left: 2px solid {c["borda_controle"]}; }}
     QLabel#titulo_painel {{ font-size: {px("titulo_secao")}px; font-weight: 600; }}
-    QLabel#numero {{ font-size: {px("numero")}px; font-weight: 700; }}
+    QLabel#numero {{ font-size: {px("numero")}px; font-weight: 600; }}
     QLabel#sinal_grande {{ font-size: {px("sinal")}px; font-weight: 700; }}
     QLabel#texto_ao_vivo {{ font-size: {px("texto_ao_vivo")}px; font-weight: 600; color: {c["texto"]}; }}
     QLabel#parcial {{ font-size: {px("corpo_grande")}px; color: {c["texto2"]}; }}
@@ -430,11 +441,11 @@ def folha_de_estilo(escala: float | None = None, faixa: str | None = None) -> st
         min-height: 12px; text-align: center; color: {c["texto"]}; font-weight: 600; }}
     QProgressBar::chunk {{ background: {grad}; border-radius: {r_p}px; }}
     QProgressBar#ocupado {{ border: none; background: {c["borda"]}; border-radius: 2px; min-height: 4px; }}
-    QProgressBar#ocupado::chunk {{ background: {gradiente_rampa()}; border-radius: 2px; }}
+    QProgressBar#ocupado::chunk {{ background: {c["acento1"]}; border-radius: 2px; }}
     QTabWidget::pane {{ border: 1px solid {c["borda"]}; border-radius: {r_m}px; background: {c["painel"]}; }}
     QTabBar::tab {{ background: transparent; color: {c["texto2"]}; padding: {e[2] + 2}px {e[4]}px; border: none;
         border-bottom: 2px solid transparent; min-height: {ALVO_TOQUE - 24 if toque else 18}px; }}
-    QTabBar::tab:selected {{ color: {c["texto"]}; border-bottom: 3px solid {c["foco"]}; font-weight: 600; }}
+    QTabBar::tab:selected {{ color: {c["texto"]}; border-bottom: 2px solid {c["acento1"]}; font-weight: 600; }}
     QTabBar::tab:hover {{ color: {c["texto"]}; background: {c["hover"]}; border-radius: {r_p}px; }}
     QTabBar::tab:focus {{ color: {c["foco"]}; }}
     QSlider::groove:horizontal {{ height: 6px; background: {c["borda"]}; border-radius: 3px; }}

@@ -17,7 +17,6 @@ from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QHBoxLayout,
     QLineEdit,
     QPlainTextEdit,
     QProgressBar,
@@ -34,6 +33,7 @@ from ...ui.dinamica import Colunas
 from ...utils import carimbo
 from ..base import (
     Pagina,
+    Secao,
     Subprocesso,
     Tabela,
     botao,
@@ -42,7 +42,6 @@ from ..base import (
     formulario,
     iniciar_tarefa,
     linha,
-    painel,
     perguntar,
     rotulo,
 )
@@ -109,9 +108,11 @@ class PaginaClasse(Pagina):
         self.tabela_cls = []
         self.marcadas: set[str] = set()
         h = Colunas(1000)
-        h.setSpacing(14)
-        p, lay = painel()
-        lay.addWidget(rotulo("Classes", "titulo_painel"))
+        h.setSpacing(16)
+        esq = QVBoxLayout()
+        esq.setSpacing(12)
+        sec_cls = Secao("Classes", recolhivel=False)
+        lay = sec_cls.conteudo
         self.t_cls = Tabela(["Classe", "Vídeos", "Landm.", "Sinaliz.", "Janelas", "Situação"])
         for j, txt in enumerate(
             [
@@ -138,8 +139,11 @@ class PaginaClasse(Pagina):
         self.bt_limpar = botao("Limpar seleção", acao=self.limpar_selecao)
         lay.addLayout(linha(self.bt_todas, self.bt_limpar))
         self.lb_sel = rotulo("", "secundario", quebra=True)
+        self.lb_sel.setToolTip(POR_QUE_MINIMO_CLASSES)
         lay.addWidget(self.lb_sel)
-        lay.addWidget(rotulo(POR_QUE_MINIMO_CLASSES, "secundario", quebra=True))
+        esq.addWidget(sec_cls)
+        self.sec_cfg = Secao("Configuração", aberta=False)
+        lay = self.sec_cfg.conteudo
         f = formulario()
         self.cb_modo = QComboBox()
         for k, v in MODOS.items():
@@ -154,31 +158,47 @@ class PaginaClasse(Pagina):
         f.addRow("Seeds", self.seeds)
         f.addRow("Épocas (máx.)", self.epocas)
         lay.addLayout(f)
-        lay.addWidget(rotulo("Data augmentation (só no treino)", "secundario"))
+        self.ck_ensaio = QCheckBox("Treinar mesmo assim (ENSAIO: não usar no TCC)")
+        self.ck_ensaio.toggled.connect(lambda _: self._avaliar())
+        lay.addWidget(self.ck_ensaio)
+        esq.addWidget(self.sec_cfg)
+        self.sec_aug = Secao("Data augmentation (só no treino)", aberta=False)
+        lay = self.sec_aug.conteudo
         self.cks = {}
-        la = QHBoxLayout()
+        la = linha()
         for k, t in FAMILIAS:
             self.cks[k] = QCheckBox(t)
+            self.cks[k].toggled.connect(self._resumir)
             la.addWidget(self.cks[k])
-        la.addStretch(1)
         lay.addLayout(la)
         self.cb_int = QComboBox()
         self.cb_int.addItems(["fraca", "media", "forte"])
-        self.ck_ensaio = QCheckBox("Treinar mesmo assim (ENSAIO: não usar no TCC)")
-        self.ck_ensaio.toggled.connect(lambda _: self._avaliar())
-        lay.addLayout(linha(rotulo("Intensidade"), self.cb_int, self.ck_ensaio))
+        lay.addLayout(linha(rotulo("Intensidade"), self.cb_int))
+        esq.addWidget(self.sec_aug)
+        esq.addStretch(1)
+        for w in (self.cb_modo, self.cb_prot, self.cb_int):
+            w.currentIndexChanged.connect(self._resumir)
+        self.seeds.textChanged.connect(self._resumir)
+        self.epocas.valueChanged.connect(self._resumir)
+        self.ck_ensaio.toggled.connect(self._resumir)
+        h.addLayout(esq, 5)
+
+        # barra de acoes fixa: iniciar e acompanhar sem rolar a pagina
         self.bt_iniciar = botao("Iniciar treino", primario=True, acao=self.iniciar)
         self.bt_parar = botao("Parar", perigo=True, acao=self.parar)
         self.bt_parar.setEnabled(False)
-        lay.addLayout(
-            linha(self.bt_iniciar, self.bt_parar, botao("Ver resultados", acao=lambda: self.app.ir_para("resultados")))
-        )
         self.barra = QProgressBar()
-        lay.addWidget(self.barra)
+        self.barra.setMinimumWidth(220)
+        self.barra.setVisible(False)  # aparece quando um treino comeca
         self.lb_status = rotulo("", "secundario", quebra=True)
-        lay.addWidget(self.lb_status)
-        lay.addStretch(1)
-        h.addWidget(p, 2)
+        self.lb_status.setMinimumWidth(260)
+        self.adicionar_acao(
+            self.bt_iniciar,
+            self.bt_parar,
+            botao("Ver resultados", variante="fantasma", acao=lambda: self.app.ir_para("resultados")),
+            self.barra,
+            self.lb_status,
+        )
 
         dir_ = QTabWidget()
         w1 = QWidget()
@@ -216,12 +236,25 @@ class PaginaClasse(Pagina):
         self.log = QPlainTextEdit()
         self.log.setReadOnly(True)
         dir_.addTab(self.log, "Log")
-        h.addWidget(dir_, 3)
+        h.addWidget(dir_, 6)
         self.raiz.addWidget(h, 1)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self._ler_progresso)
+        self._resumir()
 
     # ------------------------------------------------------------------
+    def _resumir(self, *_a) -> None:
+        cfg = [self.cb_modo.currentText(), self.cb_prot.currentText()]
+        cfg.append(f"seeds {self.seeds.text().strip() or '-'}")
+        cfg.append(f"até {self.epocas.value()} épocas")
+        if self.ck_ensaio.isChecked():
+            cfg.append("ENSAIO")
+        self.sec_cfg.definir_resumo(" · ".join(cfg))
+        fam = [c.text().split(" (")[0].lower() for c in self.cks.values() if c.isChecked()]
+        self.sec_aug.definir_resumo(
+            (", ".join(fam) + f" · intensidade {self.cb_int.currentText()}") if fam else "nenhuma (baseline)"
+        )
+
     def ao_entrar(self) -> None:
         if self.proc and self.proc.rodando():
             return
@@ -476,6 +509,7 @@ class PaginaClasse(Pagina):
         self.proc.iniciar_script(script, args)
         self.bt_iniciar.setEnabled(False)
         self.bt_parar.setEnabled(True)
+        self.barra.setVisible(True)
         self.barra.setRange(0, 0)
         self.lb_status.setText(f"Iniciado: {MODOS[modo]}.")
         self.timer.start(500)

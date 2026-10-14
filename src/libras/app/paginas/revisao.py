@@ -26,8 +26,8 @@ from ..editor_corte import EditorCorte
 class PaginaClasse(Pagina):
     titulo = "Revisão"
     subtitulo = (
-        "Assista cada take com o esqueleto e aprove, rejeite ou exclua. Para cortar, arraste as alças da "
-        "linha do tempo ou use I e O; S divide em dois takes. Só vídeos 'ok' entram no treino."
+        "Assista cada take com o esqueleto e aprove, rejeite ou corte (alças, I e O; S divide). "
+        "Só vídeos 'ok' entram no treino."
     )
 
     def __init__(self, app):
@@ -41,12 +41,12 @@ class PaginaClasse(Pagina):
         self.f_cls, self.f_sig = QComboBox(), QComboBox()
         for cb in (self.f_status, self.f_cls, self.f_sig):
             cb.currentIndexChanged.connect(self._carregar_lista)
-        lay.addLayout(linha(rotulo("Status"), self.f_status))
-        lay.addLayout(linha(rotulo("Palavra"), self.f_cls, rotulo("Sinalizador"), self.f_sig))
+        lay.addLayout(
+            linha(rotulo("Status"), self.f_status, rotulo("Palavra"), self.f_cls, rotulo("Sinalizador"), self.f_sig)
+        )
         self.tabela = Tabela(["video_id", "Status", "Quadros", "Duração", "Mão", "Avisos", "Corte"])
         self.tabela.itemSelectionChanged.connect(self._selecionar)
         self.tabela.itemChanged.connect(self._marcacao_mudou)
-        lay.addWidget(self.tabela, 1)
         self.lb_marcados = rotulo("", "secundario")
         lay.addLayout(
             linha(
@@ -56,24 +56,22 @@ class PaginaClasse(Pagina):
                 self.lb_marcados,
             )
         )
-        self.bt_aprovar_lote = botao("Aprovar marcados", primario=True, acao=lambda: self._status_lote("ok"))
+        lay.addWidget(self.tabela, 1)
+        self.bt_aprovar_lote = botao("Aprovar marcados", acao=lambda: self._status_lote("ok"))
         self.bt_rejeitar_lote = botao("Rejeitar marcados", acao=lambda: self._status_lote("rejeitado"))
-        lay.addLayout(linha(self.bt_aprovar_lote, self.bt_rejeitar_lote))
-        lay.addLayout(
-            linha(
-                botao("Aprovar (ok)", primario=True, acao=lambda: self._status("ok")),
-                botao("Rejeitar", acao=lambda: self._status("rejeitado")),
-                botao("Excluir (lixeira)", perigo=True, acao=self._excluir),
-            )
-        )
-        lay.addLayout(
-            linha(
-                botao(
-                    "Prévia de augmentation",
-                    acao=self._previa_augmentation,
-                    dica="Mostra o take e 5 variações geradas pela data augmentation (só visualização).",
-                )
-            )
+        # barra fixa: o take aberto (aprovar, rejeitar, excluir) e os marcados (em lote)
+        self.adicionar_acao(
+            botao("Aprovar (ok)", primario=True, acao=lambda: self._status("ok")),
+            botao("Rejeitar", acao=lambda: self._status("rejeitado")),
+            botao("Excluir (lixeira)", perigo=True, acao=self._excluir),
+            self.bt_aprovar_lote,
+            self.bt_rejeitar_lote,
+            botao(
+                "Prévia de augmentation",
+                variante="fantasma",
+                acao=self._previa_augmentation,
+                dica="Mostra o take e 5 variações geradas pela data augmentation (só visualização).",
+            ),
         )
         self.detalhes = rotulo("", "secundario", quebra=True)
         lay.addWidget(self.detalhes)

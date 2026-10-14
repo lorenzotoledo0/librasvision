@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QTableWidget,
     QTableWidgetItem,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -48,6 +49,51 @@ def painel(nome: str = "painel", margem: int = 16) -> tuple[QFrame, QVBoxLayout]
     lay.setContentsMargins(margem, margem, margem, margem)
     lay.setSpacing(10)
     return f, lay
+
+
+class Secao(QFrame):
+    """Painel com titulo que recolhe: fechado, mostra so o titulo e um resumo de uma linha (o que esta
+    escolhido), para formularios longos caberem na tela sem rolar. Usa o mesmo estilo de painel."""
+
+    def __init__(self, titulo: str, aberta: bool = True, recolhivel: bool = True):
+        super().__init__()
+        self.setObjectName("painel")
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(14, 10, 14, 12)
+        lay.setSpacing(8)
+        self.recolhivel = recolhivel
+        if recolhivel:
+            self.cabeca = QToolButton()
+            self.cabeca.setObjectName("cabeca_secao")
+            self.cabeca.setText(titulo)
+            self.cabeca.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+            self.cabeca.setCursor(Qt.PointingHandCursor)
+            self.cabeca.setAccessibleName(f"{titulo} (mostrar ou recolher)")
+            self.cabeca.clicked.connect(lambda: self.abrir(not self.aberta))
+            lay.addWidget(self.cabeca, 0, Qt.AlignLeft)
+        else:
+            self.cabeca = rotulo(titulo, "titulo_painel")
+            lay.addWidget(self.cabeca)
+        self.resumo = rotulo("", "secundario", quebra=True)
+        lay.addWidget(self.resumo)
+        self.corpo = QWidget()
+        self.conteudo = QVBoxLayout(self.corpo)
+        self.conteudo.setContentsMargins(0, 0, 0, 0)
+        self.conteudo.setSpacing(8)
+        lay.addWidget(self.corpo)
+        self.aberta = True
+        self.abrir(aberta)
+
+    def abrir(self, aberta: bool) -> None:
+        self.aberta = bool(aberta) or not self.recolhivel
+        self.corpo.setVisible(self.aberta)
+        self.resumo.setVisible(not self.aberta and bool(self.resumo.text()))
+        if self.recolhivel:
+            self.cabeca.setArrowType(Qt.DownArrow if self.aberta else Qt.RightArrow)
+
+    def definir_resumo(self, texto: str) -> None:
+        self.resumo.setText(texto)
+        self.resumo.setVisible(not self.aberta and bool(texto))
 
 
 def rotulo(texto: str = "", nome: str | None = None, quebra: bool = False) -> QLabel:

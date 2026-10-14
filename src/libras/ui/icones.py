@@ -25,6 +25,7 @@ _SVG = {
     "pasta": '<path d="M3 7 C3 6 4 5 5 5 H9 L11 7 H19 C20 7 21 8 21 9 V17 C21 18 20 19 19 19 H5 C4 19 3 18 3 17 Z"/>',
     "play": '<path d="M8 5 L19 12 L8 19 Z"/>',
     "menu": '<path d="M4 7 H20"/><path d="M4 12 H20"/><path d="M4 17 H20"/>',
+    "atualizar": '<path d="M19 12 A7 7 0 1 1 16.5 6.6"/><path d="M17 3 V7 H13"/>',
     "inicio_video": '<path d="M6 5 V19"/><path d="M18 5 L9 12 L18 19 Z"/>',
     "fim_video": '<path d="M18 5 V19"/><path d="M6 5 L15 12 L6 19 Z"/>',
     "quadro_ant": '<path d="M15 6 L9 12 L15 18"/>',

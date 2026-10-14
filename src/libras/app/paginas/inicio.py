@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import Counter
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QGridLayout, QHBoxLayout, QVBoxLayout, QWidget
 
 from ..base import EstadoVazio, Pagina, botao, cartao_numero, etiqueta, iniciar_tarefa, linha, painel, rotulo
 
@@ -184,9 +184,6 @@ class PaginaClasse(Pagina):
 
     def __init__(self, app):
         super().__init__(app)
-        assinatura = QFrame()
-        assinatura.setObjectName("assinatura")  # elemento de assinatura: a rampa (nao indica estado)
-        self.raiz.addWidget(assinatura)
         self.proximo = EstadoVazio("Verificando...", "", "Abrir", self._ir_proximo, icone_nome="ok")
         self.proximo.setObjectName("cartao")
         self._aba_proxima = "inicio"
