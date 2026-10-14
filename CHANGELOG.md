@@ -12,6 +12,7 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 - Revisão em lote na aba Revisão: marcar pendentes ou todos e aprovar ou rejeitar de uma vez.
 - Progresso da meta do sinalizador na legenda durante a rajada.
 - "Parar e descartar o take atual" (Esc durante a gravação da rajada).
+- Prévia de augmentation na aba Revisão: o take e 5 variações animadas, com famílias e intensidade ajustáveis e exportação de figura.
 
 ### Alterado
 

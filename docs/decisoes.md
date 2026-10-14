@@ -111,6 +111,14 @@ Regras garantidas pelo código e cobertas por testes:
 - as transformações não recebem o rótulo; propriedades testadas: forma igual, sem NaN, magnitudes dentro da faixa, determinismo por seed, distâncias dentro de uma mão mudando só por um fator único, máscaras coerentes;
 - nenhum código de augmentation roda na inferência.
 
+Prévia de augmentation (pedido da equipe, 2026-10-14). Na aba Revisão, "Prévia de augmentation" mostra o take e 5 variações lado a lado, animadas, com as famílias e a intensidade escolhidas na tela (`augmentation/previa.py` e `app/previa_augmentation.py`). Serve para conferir se as variações continuam parecendo um sinal real antes de treinar e para gerar figuras do TCC ("Salvar figura" grava o mosaico de um quadro em `runs/augmentation_previa/`, só com esqueletos, sem imagem da pessoa). Regras:
+- é só visualização: nada é salvo como dado e o config não muda; o treino continua sorteando as variações como antes;
+- a janela mostrada é a de maior movimento das mãos, normalizada pelo mesmo caminho do treino (`janelas_do_video`);
+- na prévia, cada família marcada é aplicada sempre (probabilidade 1), para cada variação mostrar o efeito; no treino, cada família entra com a probabilidade do config;
+- todas as variações usam o enquadramento do original, para as diferenças de rotação, proporção e profundidade ficarem visíveis.
+
+Por que não 5 cópias fixas por take como padrão do treino: o modo online já gera uma variação nova a cada época (dezenas de versões de cada janela ao longo de um treino), e cópias fixas multiplicam a memória das janelas (fator 6 com 5 cópias) num alvo de 4 GB. O modo offline com `copias_offline: 5` continua disponível e pode entrar na ablação como mais uma condição; a escolha entre os dois é feita pela validação (D14).
+
 ## D9. Ferramenta de coleta
 
 - A coleta é a aba Gravar da interface única (D16). A lógica (manifesto, cadastro, vocabulário, gravação, importação, qualidade, cortes) é separada da interface e coberta por testes; a interface só chama funções.
