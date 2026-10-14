@@ -6,10 +6,23 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não publicado]
 
+### Adicionado
+
+- Revisão rápida no fim da rajada: cada take passa na tela com o esqueleto e só os marcados são salvos.
+- Revisão em lote na aba Revisão: marcar pendentes ou todos e aprovar ou rejeitar de uma vez.
+- Progresso da meta do sinalizador na legenda durante a rajada.
+- "Parar e descartar o take atual" (Esc durante a gravação da rajada).
+
 ### Alterado
 
+- O máximo de takes na rajada acompanha a memória disponível para a resolução da câmera.
+- O teste de troca de abas usa a mediana de 3 medições e voltou ao CI.
 - Os dois aplicativos abrem maximizados, em modo janela.
 - A engrenagem do LibrasVision fica no canto superior direito da janela, e não mais no canto da imagem.
+
+### Corrigido
+
+- Escritas simultâneas no manifesto não se perdem mais: trava entre threads e processos, inclusive na escolha do número do take.
 
 ## [0.1.0] - 2026-10-14
 

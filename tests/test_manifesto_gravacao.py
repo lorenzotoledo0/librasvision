@@ -177,3 +177,54 @@ def test_clipe_identico_nao_duplica(cfg):
     with pytest.raises(ErroLibras, match="identico"):
         registrar_take(cfg, m, cad, frames, _info(frames), _meta(sid))
     assert len(m) == 1 and len(list((cfg.caminho("videos") / "prova").iterdir())) == 1
+
+
+def test_trava_nao_perde_escritas_simultaneas(cfg):
+    """Duas threads alterando o manifesto ao mesmo tempo: sem trava, uma apagaria a escrita da outra."""
+    import threading
+
+    from conftest import criar_videos_com_landmarks
+    from libras.coleta.manifesto import Manifesto
+
+    criar_videos_com_landmarks(cfg, n_sinalizadores=1, por_classe=1)
+    a, b = (l["video_id"] for l in Manifesto(cfg).linhas[:2])
+    n = 15
+
+    def escrever(vid):
+        for i in range(n):
+            Manifesto(cfg).definir_status(vid, "ok", observacao=f"{vid}-{i}")
+
+    ts = [threading.Thread(target=escrever, args=(v,)) for v in (a, b)]
+    for t in ts:
+        t.start()
+    for t in ts:
+        t.join()
+    man = Manifesto(cfg)
+    for vid in (a, b):
+        assert len(man.obter(vid)["observacoes"].split(" | ")) == n
+    assert not man.arquivo.with_name(man.arquivo.name + ".lock").exists()
+
+
+def test_trava_abandonada_e_recuperada(cfg, monkeypatch):
+    import os
+    import time
+
+    from conftest import criar_videos_com_landmarks
+    from libras.coleta import manifesto as mod
+
+    criar_videos_com_landmarks(cfg, n_sinalizadores=1, por_classe=1)
+    man = mod.Manifesto(cfg)
+    lock = man.arquivo.with_name(man.arquivo.name + ".lock")
+    lock.write_text("")
+    velho = time.time() - mod.TRAVA_ABANDONADA_S - 10
+    os.utime(lock, (velho, velho))  # processo que morreu com a trava
+    vid = man.linhas[0]["video_id"]
+    man.definir_status(vid, "rejeitado")
+    assert mod.Manifesto(cfg).obter(vid)["status"] == "rejeitado" and not lock.exists()
+    lock.write_text("")  # trava recente de outro processo: espera e desiste com mensagem clara
+    monkeypatch.setattr(mod, "TRAVA_ESPERA_S", 0.2)
+    import pytest
+
+    with pytest.raises(mod.ErroManifesto, match="em uso"):
+        man.definir_status(vid, "ok")
+    lock.unlink()

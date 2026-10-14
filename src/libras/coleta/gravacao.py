@@ -87,7 +87,22 @@ def registrar_take(
     meta: MetaTake,
     status: str = "ok",
 ) -> dict:
-    """Salva o take no caminho padrao e cria o registro no manifesto (tudo ou nada)."""
+    """Salva o take no caminho padrao e cria o registro no manifesto (tudo ou nada). A trava do manifesto
+    vale do numero do take ate o registro: duas gravacoes simultaneas nao pegam o mesmo numero."""
+    with manifesto.trava():
+        manifesto.recarregar()
+        return _registrar_take(cfg, manifesto, cadastro, frames, info, meta, status)
+
+
+def _registrar_take(
+    cfg: Config,
+    manifesto: Manifesto,
+    cadastro: CadastroSinalizadores,
+    frames: list[np.ndarray],
+    info: InfoVideo,
+    meta: MetaTake,
+    status: str = "ok",
+) -> dict:
     from ..utils import sha256_arquivo
 
     cadastro.exigir_tcle(meta.signer_id)

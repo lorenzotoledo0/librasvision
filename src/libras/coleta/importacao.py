@@ -377,50 +377,53 @@ def _importar_um(
         item.situacao, item.motivo = "importado", "(simulacao: nada foi copiado)"
         return
 
-    take = manifesto.proximo_take(item.signer_id, item.classe)
-    destino_padrao = manifesto.caminho_take(item.classe, item.signer_id, take)
-    metodo = "copia"
-    if padronizar:
-        destino = destino_padrao.with_suffix(".mp4")
-        metodo = padronizar_video(item.origem, destino, cfg["importacao"]["padronizar"])
-        info = sondar_arquivo(destino, cfg, None)  # metadados do arquivo final
-        info.taxa_mao, info.taxa_pose = item.info.taxa_mao, item.info.taxa_pose
-        info.avisos = item.avisos + ([] if metodo == "ffmpeg" else ["padronizado_sem_ffmpeg_fps_original"])
-    else:
-        destino = destino_padrao.with_suffix(item.origem.suffix.lower())
-        destino.parent.mkdir(parents=True, exist_ok=True)
-        if destino.exists():
-            raise ErroLibras(f"Ja existe {destino}; nada foi sobrescrito.")
-        shutil.copy2(item.origem, destino)
+    # trava do numero do take ate o registro: outra escrita nao pega o mesmo numero
+    with manifesto.trava():
+        manifesto.recarregar()
+        take = manifesto.proximo_take(item.signer_id, item.classe)
+        destino_padrao = manifesto.caminho_take(item.classe, item.signer_id, take)
+        metodo = "copia"
+        if padronizar:
+            destino = destino_padrao.with_suffix(".mp4")
+            metodo = padronizar_video(item.origem, destino, cfg["importacao"]["padronizar"])
+            info = sondar_arquivo(destino, cfg, None)  # metadados do arquivo final
+            info.taxa_mao, info.taxa_pose = item.info.taxa_mao, item.info.taxa_pose
+            info.avisos = item.avisos + ([] if metodo == "ffmpeg" else ["padronizado_sem_ffmpeg_fps_original"])
+        else:
+            destino = destino_padrao.with_suffix(item.origem.suffix.lower())
+            destino.parent.mkdir(parents=True, exist_ok=True)
+            if destino.exists():
+                raise ErroLibras(f"Ja existe {destino}; nada foi sobrescrito.")
+            shutil.copy2(item.origem, destino)
 
-    sha_final = sha256_arquivo(destino)
-    obs = [x for x in (padrao.observacoes, f"importado ({metodo})") if x]
-    if item.take_original:
-        obs.append(f"take original {item.take_original}")
-    registro = {
-        "video_id": f"{item.signer_id}_{item.classe}_{take:03d}",
-        "sha256": sha_final,
-        "sha256_origem": item.sha256_origem,
-        "classe": item.classe,
-        "signer_id": item.signer_id,
-        "take": take,
-        "origem": "importado",
-        "arquivo": manifesto.relativo(destino),
-        # so o nome do arquivo: caminhos completos podem conter nomes de pessoas
-        "arquivo_original": item.origem.name,
-        "iluminacao": padrao.iluminacao,
-        "distancia": padrao.distancia,
-        "fundo": padrao.fundo,
-        "mao_dominante": padrao.mao_dominante or sinalizador.mao_dominante,
-        # avisos de qualidade deixam o video pendente de revisao humana
-        "status": "pendente" if info.avisos else "ok",
-        "observacoes": " | ".join(obs),
-        **info.campos_manifesto(),
-    }
-    try:
-        manifesto.adicionar(registro)
-    except Exception:
-        destino.unlink(missing_ok=True)
-        raise
-    item.situacao, item.video_id, item.destino = "importado", registro["video_id"], registro["arquivo"]
-    item.avisos = list(info.avisos)
+        sha_final = sha256_arquivo(destino)
+        obs = [x for x in (padrao.observacoes, f"importado ({metodo})") if x]
+        if item.take_original:
+            obs.append(f"take original {item.take_original}")
+        registro = {
+            "video_id": f"{item.signer_id}_{item.classe}_{take:03d}",
+            "sha256": sha_final,
+            "sha256_origem": item.sha256_origem,
+            "classe": item.classe,
+            "signer_id": item.signer_id,
+            "take": take,
+            "origem": "importado",
+            "arquivo": manifesto.relativo(destino),
+            # so o nome do arquivo: caminhos completos podem conter nomes de pessoas
+            "arquivo_original": item.origem.name,
+            "iluminacao": padrao.iluminacao,
+            "distancia": padrao.distancia,
+            "fundo": padrao.fundo,
+            "mao_dominante": padrao.mao_dominante or sinalizador.mao_dominante,
+            # avisos de qualidade deixam o video pendente de revisao humana
+            "status": "pendente" if info.avisos else "ok",
+            "observacoes": " | ".join(obs),
+            **info.campos_manifesto(),
+        }
+        try:
+            manifesto.adicionar(registro)
+        except Exception:
+            destino.unlink(missing_ok=True)
+            raise
+        item.situacao, item.video_id, item.destino = "importado", registro["video_id"], registro["arquivo"]
+        item.avisos = list(info.avisos)

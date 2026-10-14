@@ -1,5 +1,9 @@
 """Revisao: lista de takes (aprovar, rejeitar, excluir) e o editor de corte (item 9).
 
+Revisao em lote: cada linha tem uma caixa de marcacao (coluna video_id). "Marcar pendentes" e "Marcar
+todos" agem sobre a lista filtrada; "Aprovar marcados" e "Rejeitar marcados" mudam o status de todos numa
+unica escrita do manifesto. A marcacao sobrevive a atualizacao da lista (dados ao vivo).
+
 O editor so corta: trecho mantido (inicio e fim) e, se quiser, divisao em dois takes. Nada e
 gravado ate "Salvar corte". Ao salvar: novo .mp4 e novo .npz com instantes reindexados a partir
 de 0, original em data/lixeira/cortes/, manifesto registrando o corte (regras de D9, em
@@ -8,6 +12,7 @@ coleta.cortes). Nao existe remocao de trecho interno. Minimo de 30 quadros por t
 
 from __future__ import annotations
 
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QComboBox
 
 from ...coleta.cortes import aplicar_edicao
@@ -28,6 +33,7 @@ class PaginaClasse(Pagina):
     def __init__(self, app):
         super().__init__(app)
         self.video_id: str | None = None
+        self.marcados: set[str] = set()
         h = Colunas(1000)
         p, lay = painel()
         self.f_status = QComboBox()
@@ -39,7 +45,20 @@ class PaginaClasse(Pagina):
         lay.addLayout(linha(rotulo("Palavra"), self.f_cls, rotulo("Sinalizador"), self.f_sig))
         self.tabela = Tabela(["video_id", "Status", "Quadros", "Duração", "Mão", "Avisos", "Corte"])
         self.tabela.itemSelectionChanged.connect(self._selecionar)
+        self.tabela.itemChanged.connect(self._marcacao_mudou)
         lay.addWidget(self.tabela, 1)
+        self.lb_marcados = rotulo("", "secundario")
+        lay.addLayout(
+            linha(
+                botao("Marcar pendentes", acao=lambda: self._marcar("pendente")),
+                botao("Marcar todos", acao=lambda: self._marcar("todos")),
+                botao("Desmarcar", acao=lambda: self._marcar(None)),
+                self.lb_marcados,
+            )
+        )
+        self.bt_aprovar_lote = botao("Aprovar marcados", primario=True, acao=lambda: self._status_lote("ok"))
+        self.bt_rejeitar_lote = botao("Rejeitar marcados", acao=lambda: self._status_lote("rejeitado"))
+        lay.addLayout(linha(self.bt_aprovar_lote, self.bt_rejeitar_lote))
         lay.addLayout(
             linha(
                 botao("Aprovar (ok)", primario=True, acao=lambda: self._status("ok")),
@@ -107,6 +126,54 @@ class PaginaClasse(Pagina):
             )
             cores.append({"pendente": tema.CORES["aviso"], "rejeitado": tema.CORES["erro"]}.get(l["status"]))
         self.tabela.preencher(linhas, cores)
+        self.tabela.blockSignals(True)
+        visiveis = set()
+        for r in range(self.tabela.rowCount()):
+            it = self.tabela.item(r, 0)
+            visiveis.add(it.text())
+            it.setFlags(it.flags() | Qt.ItemIsUserCheckable)
+            it.setCheckState(Qt.Checked if it.text() in self.marcados else Qt.Unchecked)
+        self.tabela.blockSignals(False)
+        self.marcados &= visiveis  # marcacao so vale para o que esta na lista filtrada
+        self._atualizar_marcados()
+
+    # ------------------------------------------------------------------
+    def _marcacao_mudou(self, it) -> None:
+        if it.column() != 0:
+            return
+        (self.marcados.add if it.checkState() == Qt.Checked else self.marcados.discard)(it.text())
+        self._atualizar_marcados()
+
+    def _marcar(self, status: str | None) -> None:
+        """status None desmarca tudo; 'todos' marca a lista filtrada; 'pendente' so os pendentes dela."""
+        self.tabela.blockSignals(True)
+        self.marcados.clear()
+        for r in range(self.tabela.rowCount()):
+            it = self.tabela.item(r, 0)
+            marcar = status == "todos" or (status is not None and self.tabela.item(r, 1).text() == status)
+            it.setCheckState(Qt.Checked if marcar else Qt.Unchecked)
+            if marcar:
+                self.marcados.add(it.text())
+        self.tabela.blockSignals(False)
+        self._atualizar_marcados()
+
+    def _atualizar_marcados(self) -> None:
+        n = len(self.marcados)
+        self.lb_marcados.setText(f"{n} marcado(s)" if n else "")
+        self.bt_aprovar_lote.setEnabled(bool(n))
+        self.bt_rejeitar_lote.setEnabled(bool(n))
+
+    def _status_lote(self, st: str) -> None:
+        ids = sorted(self.marcados)
+        if not ids:
+            return
+        acao = "Aprovar" if st == "ok" else "Rejeitar"
+        if not perguntar(self, f"{acao} {len(ids)} take(s) marcado(s)?"):
+            return
+        n = Manifesto(self.cfg).definir_status_lote(ids, st, observacao=f"revisado em lote: {st}")
+        self.marcados.clear()
+        self.detalhes.setText(f"{n} take(s) marcado(s) como {st}.")
+        self._carregar_lista()
 
     def _selecionar(self) -> None:
         vid = self.tabela.valor_selecionado(0)
