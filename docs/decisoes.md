@@ -363,6 +363,15 @@ Base da decisão: `docs/analise_interface.md` (padrões de apps de Libras, legen
 - Destaque da palavra confirmada: fundo de acento, contorno na cor do texto e peso mais forte por 300 ms; com "Reduzir movimento", sem animação: peso mais forte e sublinhado por 1,2 s. No máximo 3 mudanças por segundo (WCAG 2.3.1): um pulso só começa 750 ms depois do anterior e se nenhuma janela de 1 s passar de 3 mudanças.
 - App real nas três faixas: compacta (até 600 px) com rótulos curtos embaixo dos ícones, selo só com o ícone (tocar abre o texto) e Configurações como folha que sobe de baixo; média e expandida com painel lateral. Alvos de toque de 44 px (testado). Ícones novos desenhados para o projeto: engrenagem, cadeado, tela cheia, lista, mão, parar, copiar, importar e fechar.
 
+
+**Reforma visual e de estrutura (pedido da equipe, 2026-10-14).** A equipe achou a interface pouco profissional e com páginas que exigiam rolar para chegar às ações. Mudanças:
+- Visual neutro: grafite (`fundo` #111317, painéis #171A1F a #252930, bordas #262A31) com um único azul de destaque (#2563EB no botão principal, #3B82F6 no item ativo e nos dados), sem gradientes (os tokens `gradiente` continuam como pares, com a mesma cor nas duas pontas, por compatibilidade). Cantos de 4, 6 e 8 px; títulos de página de 20 px. Contrastes medidos: texto secundário de 6,9:1 a 7,9:1 sobre as superfícies; botão principal com texto branco a 5,2:1, por isso o rótulo deixou de precisar ser grande e em negrito. A rampa continua só nos dados; a linha de "assinatura" virou uma divisória neutra de 1 px.
+- Cabeçalho de página compacto (título, subtítulo e Atualizar como ícone, com nome acessível) com divisória, no lugar do título grande e do botão de texto solto no canto.
+- Barra de ações fixa no rodapé (`Pagina.adicionar_acao`), fora da área de rolagem, com quebra de linha em janela estreita: as ações principais (gravar, iniciar treino, aprovar, salvar) ficam sempre visíveis. Gravar mostra só os botões do estado atual (normal, rajada, revisão).
+- Seções recolhíveis (`Secao`) com resumo de uma linha quando fechadas: Condições e Opções na Gravar, Configuração e Data augmentation no Treino. O formulário cabe na tela sem rolar.
+- Barra lateral: itens numa área com rolagem própria (em janela baixa a lista rola em vez de cortar o último item), marca numa linha, larguras de 216 px (expandida) e 88 px (trilho, com rótulo embaixo do ícone, regra mantida).
+- Alvo de toque de 44 px mantido nas faixas compacta e média (conteúdo de 28 px + 2 x 7 de padding + 2 de borda).
+
 ## Decisões tomadas sem consulta à equipe (terceira rodada, item 12)
 
 1. A imagem de referência da curva (enviada depois do pedido) foi a fonte da rampa; violeta e magenta foram clareados o mínimo para 3:1, e o azul do meio foi ancorado no azul da marca.

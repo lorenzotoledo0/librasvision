@@ -16,6 +16,9 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ### Alterado
 
+- Visual neutro nas duas interfaces: grafite com um único azul de destaque, sem gradientes, cantos menores.
+- Bancada: cabeçalho de página compacto, barra de ações fixa no rodapé (ações principais sempre visíveis), seções recolhíveis na Gravar e no Treino e barra lateral que rola em vez de cortar itens em janela baixa.
+
 - O máximo de takes na rajada acompanha a memória disponível para a resolução da câmera.
 - O teste de troca de abas usa a mediana de 3 medições e voltou ao CI.
 - Os dois aplicativos abrem maximizados, em modo janela.
