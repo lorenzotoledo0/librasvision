@@ -7,7 +7,11 @@ garantida por escrita atomica e pela verificacao em verificar_integridade().
 
 from __future__ import annotations
 
+import contextlib
+import os
 import shutil
+import threading
+import time
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -51,6 +55,15 @@ COLUNAS = [
 ]
 OBRIGATORIAS = ["video_id", "classe", "signer_id", "arquivo", "status"]
 STATUS_VALIDOS = ("ok", "pendente", "rejeitado")
+
+# Trava de escrita: toda alteracao e "reler, mudar, gravar". Sem trava, duas escritas ao mesmo tempo
+# (thread da interface e tarefa em segundo plano, ou a interface e um script) fazem a segunda apagar
+# a linha que a primeira acabou de gravar. RLock para as threads deste processo; arquivo .lock
+# (criacao exclusiva) para outros processos, so na camada mais externa.
+_TRAVA_THREADS = threading.RLock()
+_PROFUNDIDADE = threading.local()
+TRAVA_ESPERA_S = 15.0
+TRAVA_ABANDONADA_S = 120.0  # .lock mais velho que isso e de um processo que morreu
 
 
 @dataclass
@@ -126,6 +139,47 @@ class Manifesto:
     def salvar(self) -> None:
         escrever_csv_atomico(self.arquivo, COLUNAS, self._linhas)
 
+    @contextlib.contextmanager
+    def trava(self):
+        """Exclusividade para "reler, alterar e salvar". Reentrante na mesma thread."""
+        with _TRAVA_THREADS:
+            prof = getattr(_PROFUNDIDADE, "n", 0)
+            _PROFUNDIDADE.n = prof + 1
+            try:
+                if prof:
+                    yield
+                    return
+                lock = self.arquivo.with_name(self.arquivo.name + ".lock")
+                self._adquirir_arquivo(lock)
+                try:
+                    yield
+                finally:
+                    lock.unlink(missing_ok=True)
+            finally:
+                _PROFUNDIDADE.n = prof
+
+    @staticmethod
+    def _adquirir_arquivo(lock: Path) -> None:
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        limite = time.monotonic() + TRAVA_ESPERA_S
+        while True:
+            try:
+                os.close(os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY))
+                return
+            except FileExistsError:
+                try:
+                    if time.time() - lock.stat().st_mtime > TRAVA_ABANDONADA_S:
+                        lock.unlink(missing_ok=True)
+                        continue
+                except FileNotFoundError:
+                    continue
+                if time.monotonic() > limite:
+                    raise ErroManifesto(
+                        f"O manifesto esta em uso por outro processo ({lock.name}). Tente de novo; se nada "
+                        "estiver rodando, apague esse arquivo."
+                    ) from None
+                time.sleep(0.05)
+
     # ------------------------------------------------------------------
     @property
     def linhas(self) -> list[dict]:
@@ -180,6 +234,10 @@ class Manifesto:
 
     # ------------------------------------------------------------------
     def adicionar(self, registro: dict) -> dict:
+        with self.trava():
+            return self._adicionar(registro)
+
+    def _adicionar(self, registro: dict) -> dict:
         self.recarregar()  # outra ferramenta pode ter alterado o arquivo (ex.: extracao)
         faltando = [
             c
@@ -204,6 +262,10 @@ class Manifesto:
         return linha
 
     def atualizar(self, video_id: str, **campos) -> dict:
+        with self.trava():
+            return self._atualizar(video_id, **campos)
+
+    def _atualizar(self, video_id: str, **campos) -> dict:
         """Altera campos de um registro (so colunas conhecidas)."""
         desconhecidos = [k for k in campos if k not in COLUNAS]
         if desconhecidos:
@@ -217,6 +279,10 @@ class Manifesto:
         return l
 
     def definir_status(self, video_id: str, status: str, observacao: str | None = None) -> dict:
+        with self.trava():
+            return self._definir_status(video_id, status, observacao)
+
+    def _definir_status(self, video_id: str, status: str, observacao: str | None = None) -> dict:
         if status not in STATUS_VALIDOS:
             raise ErroManifesto(f"Status invalido: {status}")
         self.recarregar()
@@ -229,7 +295,29 @@ class Manifesto:
         self.salvar()
         return l
 
+    def definir_status_lote(self, video_ids: list[str], status: str, observacao: str | None = None) -> int:
+        """Mesmo status para varios takes numa unica leitura e escrita (revisao em lote)."""
+        if status not in STATUS_VALIDOS:
+            raise ErroManifesto(f"Status invalido: {status}")
+        with self.trava():
+            self.recarregar()
+            alvo = set(video_ids)
+            n = 0
+            for l in self._linhas:
+                if l["video_id"] in alvo:
+                    l["status"] = status
+                    if observacao:
+                        l["observacoes"] = (l["observacoes"] + " | " if l["observacoes"] else "") + observacao
+                    n += 1
+            if n:
+                self.salvar()
+            return n
+
     def excluir(self, video_id: str) -> Path:
+        with self.trava():
+            return self._excluir(video_id)
+
+    def _excluir(self, video_id: str) -> Path:
         """Remove o registro e move o video para data/lixeira (nunca apaga direto)."""
         self.recarregar()
         l = self.obter(video_id)
