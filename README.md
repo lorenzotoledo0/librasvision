@@ -308,4 +308,4 @@ Detalhes em [docs/ROADMAP.md](docs/ROADMAP.md), nas [issues](https://github.com/
 
 **Instituição:** Centro Universitário do Distrito Federal (UDF), Brasília-DF.
 
-**Agradecimentos:** às pessoas sinalizadoras que participarem da coleta e à comunidade surda e aos intérpretes de Libras que contribuírem com a validação. [PLACEHOLDER: agradecimentos nominais, se a equipe quiser.]
+**Agradecimentos:** às pessoas sinalizadoras que participarem da coleta e à comunidade surda e aos intérpretes de Libras que contribuírem com a validação.
