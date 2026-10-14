@@ -66,6 +66,15 @@ class PaginaClasse(Pagina):
                 botao("Excluir (lixeira)", perigo=True, acao=self._excluir),
             )
         )
+        lay.addLayout(
+            linha(
+                botao(
+                    "Prévia de augmentation",
+                    acao=self._previa_augmentation,
+                    dica="Mostra o take e 5 variações geradas pela data augmentation (só visualização).",
+                )
+            )
+        )
         self.detalhes = rotulo("", "secundario", quebra=True)
         lay.addWidget(self.detalhes)
         h.addWidget(p, 2)
@@ -220,6 +229,16 @@ class PaginaClasse(Pagina):
         if self.video_id:
             Manifesto(self.cfg).definir_status(self.video_id, st, observacao=f"revisado: {st}")
             self._carregar_lista()
+
+    def _previa_augmentation(self) -> None:
+        from ..previa_augmentation import DialogoPreviaAugmentation
+
+        l = Manifesto(self.cfg).obter(self.video_id) if self.video_id else None
+        if l is None:
+            info(self, "Escolha um take na lista para ver a prévia.")
+            return
+        self.editor.pausar()
+        DialogoPreviaAugmentation(self, self.cfg, l).exec()
 
     def _excluir(self) -> None:
         if self.video_id and perguntar(self, f"Mover {self.video_id} para data/lixeira e tirar do manifesto?"):
