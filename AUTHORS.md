@@ -5,7 +5,7 @@
 - Augusto Cezar Araujo Saboia
 - Elizeu Barbosa Souza
 - Lucas Caitano Barreto
-- Lucca Toledo
+- Lorenzo Toledo
 
 ## Orientação
 

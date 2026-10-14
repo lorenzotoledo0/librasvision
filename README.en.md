@@ -44,7 +44,7 @@ Videos of people are personal data under the Brazilian LGPD. Recording requires 
 
 ## Team
 
-Augusto Cezar Araujo Saboia, Elizeu Barbosa Souza, Lucas Caitano Barreto and Lucca Toledo. Advisor: Prof. Kadidja Valéria Reginaldo de Oliveira (UDF).
+Augusto Cezar Araujo Saboia, Elizeu Barbosa Souza, Lucas Caitano Barreto and Lorenzo Toledo. Advisor: Prof. Kadidja Valéria Reginaldo de Oliveira (UDF).
 
 ## License
 

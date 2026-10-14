@@ -6,7 +6,7 @@
 
 **Instituição:** Centro Universitário do Distrito Federal (UDF), Curso de Ciência da Computação, Brasília-DF
 
-**Pesquisadores responsáveis:** Augusto Cezar Araujo Saboia, Elizeu Barbosa Souza, Lucas Caitano Barreto, Lucca Toledo
+**Pesquisadores responsáveis:** Augusto Cezar Araujo Saboia, Elizeu Barbosa Souza, Lucas Caitano Barreto, Lorenzo Toledo
 
 **Orientadora:** Prof.ª Kadidja Valéria Reginaldo de Oliveira
 

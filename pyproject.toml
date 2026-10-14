@@ -15,7 +15,7 @@ authors = [
   { name = "Augusto Cezar Araujo Saboia" },
   { name = "Elizeu Barbosa Souza" },
   { name = "Lucas Caitano Barreto" },
-  { name = "Lucca Toledo" },
+  { name = "Lorenzo Toledo" },
 ]
 keywords = ["libras", "sign-language", "computer-vision", "mediapipe", "lstm", "accessibility"]
 classifiers = [

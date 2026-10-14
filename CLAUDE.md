@@ -10,7 +10,7 @@ Este arquivo reúne o contexto do projeto. Detalhes e justificativas das escolha
 - Abordagem: MediaPipe Holistic (landmarks de pose, mãos e face) + LSTM empilhada (Keras/TensorFlow) sobre janelas de 30 frames.
 - Vocabulário mínimo: biblioteca, prova, secretaria, mais a classe nenhum_sinal. Pode crescer. O vocabulário é configurável (data/vocabulario.json).
 - Metas do TCC: acurácia acima de 85%, baixa latência, rodar em hardware comum (alvo: Intel i5, 4 GB de RAM, webcam 720p, Windows 10/11).
-- Equipe: Augusto Cezar Araujo Saboia, Lucca Toledo, Lucas Caitano Barreto, Elizeu Barbosa Souza.
+- Equipe: Augusto Cezar Araujo Saboia, Lorenzo Toledo, Lucas Caitano Barreto, Elizeu Barbosa Souza.
 - Orientação: TCC I com Prof.ª Dra. Flavia Maria; TCC II (julho a dezembro de 2026) com Prof.ª Kadidja Valéria Reginaldo de Oliveira.
 - Toda a documentação acadêmica é em português do Brasil (normas ABNT, tabelas compatíveis com abnTeX2).
 
