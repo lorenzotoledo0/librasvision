@@ -68,6 +68,7 @@ def test_cortar_take(cfg):
         if not ok:
             break
         frames_orig.append(f)
+    cap.release()  # no Windows, arquivo aberto nao pode ir para a lixeira
     novo = cortar_take(cfg, r["video_id"], 10, 50)
     assert novo["video_id"] == r["video_id"] and novo["n_frames"] == "40" and novo["frames_originais"] == "60"
     assert "frames 10-50 de 60" in novo["corte"]

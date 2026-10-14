@@ -5,9 +5,15 @@ gerados por codigo, sem pessoas). Servem apenas para testar o encanamento do cod
 Nada daqui deve ser usado como dado do TCC nem gerar numeros de desempenho.
 """
 
+import os
 import shutil
 import sys
 from pathlib import Path
+
+# No Windows, a plataforma offscreen do Qt nao acha nenhuma fonte (0 familias): o texto sai com
+# metricas de reserva e os testes de layout acusam rolagem horizontal que nao existe no app real.
+if sys.platform == "win32":
+    os.environ.setdefault("QT_QPA_FONTDIR", os.path.join(os.environ.get("WINDIR", r"C:\Windows"), "Fonts"))
 
 import numpy as np
 import pytest
