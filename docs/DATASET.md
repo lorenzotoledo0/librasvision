@@ -65,7 +65,8 @@ Os indicadores de qualidade de cada take (FPS medido, brilho, fração de frames
 ## Modos de gravação
 
 - **Take único:** Espaço grava, Enter aceita, Esc descarta, R regrava. A extração dos landmarks acontece ao parar, antes da revisão.
-- **Rajada:** grava N takes seguidos com intervalo curto. A extração de todos acontece só no fim (depois do último take ou de "Parar rajada"), para os takes saírem um atrás do outro. Takes com aviso de qualidade ficam `pendente`. O número de takes é limitado pela memória (`coleta.gravacao.memoria_max_rajada_mb`, padrão 1500 MB).
+- **Rajada:** grava N takes seguidos com intervalo curto. A extração de todos acontece só no fim (depois do último take ou de "Parar rajada"), para os takes saírem um atrás do outro. Em seguida vem a revisão rápida: cada take passa na tela com o esqueleto, Enter mantém e Esc descarta, e só os marcados são salvos (com aviso de qualidade, como `pendente`). O número de takes é limitado pela memória (`coleta.gravacao.memoria_max_rajada_mb`, padrão 1500 MB), e o campo já mostra o máximo possível para a câmera ligada.
+- **Revisão em lote:** na aba Revisão, marque takes (ou use "Marcar pendentes" / "Marcar todos") e aprove ou rejeite todos de uma vez.
 
 ## Validação
 
