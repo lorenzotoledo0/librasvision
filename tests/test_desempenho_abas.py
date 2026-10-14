@@ -17,6 +17,7 @@ pytestmark = pytest.mark.desempenho  # mede tempos: sensivel a maquinas comparti
 from conftest import ExtratorFalso, cadastrar, criar_videos_com_landmarks, gerar_video_sintetico  # noqa: E402
 
 LIMITE_MS = 200  # ambiente de desenvolvimento; a meta do item 7 e 100 ms
+REPETICOES = 3  # mediana de varias trocas: uma troca isolada oscila com a carga da maquina
 
 
 class ExtratorLento(ExtratorFalso):
@@ -41,6 +42,17 @@ def trocar(app, janela, chave) -> float:
     return max(janela.ultima_troca["total_ms"], (time.perf_counter() - t) * 1000)
 
 
+def aguardar_encerramentos_sem_bloquear() -> bool:
+    from libras.app.base import ha_encerramento_pendente
+
+    return not ha_encerramento_pendente()
+
+
+def mediana(valores: list[float]) -> float:
+    v = sorted(valores)
+    return v[len(v) // 2]
+
+
 def test_troca_de_abas_rapida(cfg, tmp_path, monkeypatch):
     import libras.app.paginas.tempo_real as tr
     import libras.coleta.previa as previa
@@ -61,30 +73,36 @@ def test_troca_de_abas_rapida(cfg, tmp_path, monkeypatch):
     w.show()
     try:
         assert esperar(app, lambda: len(w.paginas) == len(PAGINAS), 30)  # pre-carregamento
-        tempos = {}
-        trocar(app, w, "sinalizadores")
-        for chave, _, _ in PAGINAS:
-            tempos[chave] = trocar(app, w, chave)
-            esperar(app, lambda: False, 0.3)
-        # caso 1: Gravar com camera e previa ligadas -> Configuracoes
-        trocar(app, w, "gravar")
+        amostras: dict[str, list[float]] = {}
+        for _ in range(REPETICOES):
+            trocar(app, w, "sinalizadores")
+            for chave, _, _ in PAGINAS:
+                amostras.setdefault(chave, []).append(trocar(app, w, chave))
+                esperar(app, lambda: False, 0.3)
         g = w.paginas["gravar"]
-        g.ck_lm.setChecked(True)
-        g.ligar()
-        assert esperar(app, lambda: g.estado == "previa")
-        assert esperar(app, lambda: g.previa._t.is_alive() and g.previa.lm is not None)  # MediaPipe falso em uso
-        tempos["gravar(camera) -> configuracoes"] = trocar(app, w, "configuracoes")
-        # caso 2: Tempo real com processo rodando -> Configuracoes
-        trocar(app, w, "tempo_real")
         t = w.paginas["tempo_real"]
-        assert esperar(app, lambda: t.proc is not None and t.proc.rodando())
-        esperar(app, lambda: False, 0.5)
-        tempos["tempo_real(processo) -> configuracoes"] = trocar(app, w, "configuracoes")
-        tempos["configuracoes -> tempo_real"] = trocar(app, w, "tempo_real")
+        for _ in range(REPETICOES):
+            # caso 1: Gravar com camera e previa ligadas -> Configuracoes
+            trocar(app, w, "gravar")
+            g.ck_lm.setChecked(True)
+            assert esperar(app, aguardar_encerramentos_sem_bloquear, 15)  # camera anterior ja fechou
+            g.ligar()
+            assert esperar(app, lambda: g.estado == "previa")
+            assert esperar(app, lambda: g.previa._t.is_alive() and g.previa.lm is not None)  # MediaPipe falso
+            amostras.setdefault("gravar(camera) -> configuracoes", []).append(trocar(app, w, "configuracoes"))
+            # caso 2: Tempo real com processo rodando -> Configuracoes
+            trocar(app, w, "tempo_real")
+            assert esperar(app, lambda: t.proc is not None and t.proc.rodando(), 15)
+            esperar(app, lambda: False, 0.5)
+            amostras.setdefault("tempo_real(processo) -> configuracoes", []).append(trocar(app, w, "configuracoes"))
+            amostras.setdefault("configuracoes -> tempo_real", []).append(trocar(app, w, "tempo_real"))
+            trocar(app, w, "configuracoes")
+        tempos = {k: mediana(v) for k, v in amostras.items()}
         lentos = {k: round(v) for k, v in tempos.items() if v > LIMITE_MS}
-        print("\nTempos de troca (ms):", {k: round(v) for k, v in tempos.items()})
-        assert not lentos, f"Trocas acima de {LIMITE_MS} ms: {lentos}"
+        print(f"\nTempos de troca (ms, mediana de {REPETICOES}):", {k: round(v) for k, v in tempos.items()})
+        assert not lentos, f"Trocas acima de {LIMITE_MS} ms (mediana de {REPETICOES}): {lentos}"
         # o processo anterior termina sozinho, e o novo so comeca depois
+        trocar(app, w, "tempo_real")
         assert esperar(app, lambda: t.proc is not None and t.proc.rodando(), 10)
     finally:
         w.close()

@@ -113,9 +113,10 @@ def _mover_registros(cfg: Config, linhas: list[dict], destino: Path, res: Result
                 res.landmarks += 1
     _salvar_linhas(destino / "manifesto_removido.csv", linhas)
     ids = {l["video_id"] for l in linhas}
-    man.recarregar()
-    man._linhas = [x for x in man._linhas if x["video_id"] not in ids]
-    man.salvar()
+    with man.trava():
+        man.recarregar()
+        man._linhas = [x for x in man._linhas if x["video_id"] not in ids]
+        man.salvar()
 
 
 # ======================================================================

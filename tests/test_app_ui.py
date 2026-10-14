@@ -31,9 +31,12 @@ def esperar(app, cond, limite=30.0):
 
 
 @pytest.fixture
-def janela(qapp, cfg):
+def janela(qapp, cfg, monkeypatch):
+    import libras.app.base as base
     from libras.app.janela import JanelaPrincipal
 
+    # a confirmacao de "sair com gravacao em andamento" e modal: num teste que falhou, travaria o fechamento
+    monkeypatch.setattr(base, "perguntar", lambda *a, **k: True)
     w = JanelaPrincipal(cfg)
     yield w
     w.close()  # closeEvent: encerra paginas, subprocessos e espera as tarefas em segundo plano
@@ -129,21 +132,44 @@ def _preparar_rajada(qapp, cfg, janela, tmp_path, monkeypatch):
     return g, criados
 
 
-def test_rajada_extrai_so_no_fim(qapp, cfg, janela, tmp_path, monkeypatch):
+def test_rajada_extrai_so_no_fim_e_revisa_antes_de_salvar(qapp, cfg, janela, tmp_path, monkeypatch):
     from libras.coleta.manifesto import Manifesto
 
     g, criados = _preparar_rajada(qapp, cfg, janela, tmp_path, monkeypatch)
     g.sp_rajada.setValue(3)
     g.iniciar_rajada()
-    # enquanto a rajada grava, nenhum take e extraido nem salvo
+    # enquanto a rajada grava, nenhum take e extraido nem salvo; a legenda mostra o progresso da meta
     assert esperar(qapp, lambda: len(g._fila) == 2 and g.estado == "intervalo", 30)
     assert criados == [] and len(Manifesto(cfg).linhas) == 0
-    assert esperar(qapp, lambda: g.estado == "previa" and not g._em_rajada, 60), g.status.text()
+    assert "S01/biblioteca: 2 de 10" in g._texto_meta_rajada()
+    # depois da extracao vem a revisao rapida: nada salvo ate a pessoa decidir
+    assert esperar(qapp, lambda: g.estado == "revisao_rajada", 60), g.status.text()
+    assert len(criados) == 3 and len(Manifesto(cfg).linhas) == 0
+    assert not g.lista_rajada.isHidden() and g.lista_rajada.count() == 3
+    g.aceitar()  # take 1: manter
+    g.descartar()  # take 2: descartar
+    g.aceitar()  # take 3: manter
+    assert [t["manter"] for t in g._revisar] == [True, False, True]
+    g._salvar_revisados()
+    assert esperar(qapp, lambda: g.estado == "previa" and not g._em_rajada, 30), g.status.text()
     linhas = Manifesto(cfg).linhas
-    assert len(criados) == 3 and len(linhas) == 3
-    assert all(l["landmarks_path"] and l["sha256_npz"] for l in linhas)
-    assert [int(l["take"]) for l in linhas] == [1, 2, 3]
-    assert "3 de 3 takes salvos" in g.status.text()
+    assert len(linhas) == 2 and all(l["landmarks_path"] and l["sha256_npz"] for l in linhas)
+    assert [int(l["take"]) for l in linhas] == [1, 2]
+    assert "2 de 3 takes salvos" in g.status.text() and "1 descartados" in g.status.text()
+
+
+def test_rajada_marcar_e_desmarcar_todos(qapp, cfg, janela, tmp_path, monkeypatch):
+    from libras.coleta.manifesto import Manifesto
+
+    g, _ = _preparar_rajada(qapp, cfg, janela, tmp_path, monkeypatch)
+    g.sp_rajada.setValue(2)
+    g.iniciar_rajada()
+    assert esperar(qapp, lambda: g.estado == "revisao_rajada", 60), g.status.text()
+    g._marcar_rajada(False)
+    assert not any(t["manter"] for t in g._revisar)
+    g._salvar_revisados()
+    assert esperar(qapp, lambda: g.estado == "previa", 30)
+    assert len(Manifesto(cfg).linhas) == 0 and "2 descartados" in g.status.text()
 
 
 def test_parar_rajada_processa_o_que_foi_gravado(qapp, cfg, janela, tmp_path, monkeypatch):
@@ -154,8 +180,30 @@ def test_parar_rajada_processa_o_que_foi_gravado(qapp, cfg, janela, tmp_path, mo
     g.iniciar_rajada()
     assert esperar(qapp, lambda: len(g._fila) == 1 and g.estado == "intervalo", 30)
     g.parar_rajada()
-    assert esperar(qapp, lambda: g.estado == "previa" and not g._em_rajada, 60), g.status.text()
+    assert esperar(qapp, lambda: g.estado == "revisao_rajada", 60), g.status.text()
+    g._salvar_revisados()
+    assert esperar(qapp, lambda: g.estado == "previa" and not g._em_rajada, 30), g.status.text()
     assert len(criados) == 1 and len(Manifesto(cfg).linhas) == 1
+
+
+def test_parar_e_descartar_o_take_em_gravacao(qapp, cfg, janela, tmp_path, monkeypatch):
+    g, criados = _preparar_rajada(qapp, cfg, janela, tmp_path, monkeypatch)
+    cfg["coleta"]["gravacao"]["duracao_s"] = 3.0  # tempo para pegar o segundo take no meio
+    g.sp_rajada.setValue(5)
+    g.iniciar_rajada()
+    assert esperar(qapp, lambda: len(g._fila) == 1 and g.estado == "gravando", 30)
+    assert g.bt_parar_desc.isEnabled()
+    g._tecla_esc()  # Esc durante a gravacao da rajada: para e descarta o take atual
+    assert esperar(qapp, lambda: g.estado == "revisao_rajada", 60), g.status.text()
+    assert len(g._revisar) == 1 and len(criados) == 1
+
+
+def test_campo_da_rajada_segue_a_memoria(qapp, cfg, janela, tmp_path, monkeypatch):
+    g, _ = _preparar_rajada(qapp, cfg, janela, tmp_path, monkeypatch)
+    assert g.sp_rajada.maximum() == min(50, g._takes_que_cabem())
+    cfg["coleta"]["gravacao"]["memoria_max_rajada_mb"] = 60  # 640x480 por 0,5 s: cerca de 13 MB por take
+    g._ajustar_limite_rajada()
+    assert g.sp_rajada.maximum() == g._takes_que_cabem() == 4
 
 
 def test_rajada_respeita_limite_de_memoria(qapp, cfg, janela, tmp_path, monkeypatch):
@@ -169,6 +217,30 @@ def test_rajada_respeita_limite_de_memoria(qapp, cfg, janela, tmp_path, monkeypa
     g.iniciar_rajada()
     assert avisos and "cabem até 1 takes" in avisos[0]
     assert g.estado == "previa" and not g._em_rajada
+
+
+def test_revisao_em_lote(qapp, cfg, janela, monkeypatch):
+    import libras.app.paginas.revisao as rev
+    from libras.coleta.manifesto import Manifesto
+
+    criar_videos_com_landmarks(cfg, n_sinalizadores=2, por_classe=2)
+    man = Manifesto(cfg)
+    ids = [l["video_id"] for l in man.linhas]
+    man.definir_status_lote(ids[:3], "pendente")
+    monkeypatch.setattr(rev, "perguntar", lambda *a, **k: True)
+    janela.ir_para("revisao")
+    r = janela.paginas["revisao"]
+    r.f_status.setCurrentText("todos")
+    r._marcar("pendente")
+    assert r.marcados == set(ids[:3]) and "3 marcado" in r.lb_marcados.text()
+    r._status_lote("ok")
+    assert all(l["status"] == "ok" for l in Manifesto(cfg).linhas)
+    r._marcar("todos")
+    assert len(r.marcados) == len(ids)
+    r._status_lote("rejeitado")
+    assert all(l["status"] == "rejeitado" for l in Manifesto(cfg).linhas)
+    r._marcar(None)
+    assert not r.marcados and not r.bt_aprovar_lote.isEnabled()
 
 
 def test_curvas_ao_vivo_sem_teste_por_epoca(qapp, cfg, janela, tmp_path):

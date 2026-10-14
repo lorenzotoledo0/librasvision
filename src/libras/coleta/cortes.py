@@ -99,6 +99,11 @@ def _contar_frames(caminho: Path) -> int:
 
 
 def _gerar_trechos(cfg: Config, video_id: str, trechos: list[tuple[int, int]]) -> list[dict]:
+    with Manifesto(cfg).trava():  # numeros de take novos e troca do registro sem concorrencia
+        return _gerar_trechos_travado(cfg, video_id, trechos)
+
+
+def _gerar_trechos_travado(cfg: Config, video_id: str, trechos: list[tuple[int, int]]) -> list[dict]:
     """Nucleo comum: gera arquivos temporarios de cada trecho, move o original para a lixeira e
     atualiza o manifesto. O primeiro trecho fica com o video_id original; os demais viram takes novos."""
     from ..extracao import caminho_npz, meta_esperada, salvar_npz

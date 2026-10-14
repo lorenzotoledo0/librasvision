@@ -218,20 +218,21 @@ def extrair_lote(
 
     # registra o caminho dos landmarks no manifesto (releitura evita sobrescrever edicoes da interface)
     if resumo.processados or resumo.em_cache:
-        man.recarregar()
-        feitos = set(resumo.processados) | set(resumo.em_cache)
-        mudou = False
-        for l in man._linhas:
-            if l["video_id"] in feitos:
-                from .utils import sha256_arquivo
+        with man.trava():
+            man.recarregar()
+            feitos = set(resumo.processados) | set(resumo.em_cache)
+            mudou = False
+            for l in man._linhas:
+                if l["video_id"] in feitos:
+                    from .utils import sha256_arquivo
 
-                npz = caminho_npz(cfg, l)
-                rel = man.relativo(npz)
-                sha_npz = sha256_arquivo(npz)
-                if l.get("landmarks_path") != rel or l.get("sha256_npz") != sha_npz:
-                    l["landmarks_path"], l["sha256_npz"] = rel, sha_npz
-                    mudou = True
-        if mudou:
-            man.salvar()
+                    npz = caminho_npz(cfg, l)
+                    rel = man.relativo(npz)
+                    sha_npz = sha256_arquivo(npz)
+                    if l.get("landmarks_path") != rel or l.get("sha256_npz") != sha_npz:
+                        l["landmarks_path"], l["sha256_npz"] = rel, sha_npz
+                        mudou = True
+            if mudou:
+                man.salvar()
     resumo.segundos = time.perf_counter() - t0
     return resumo
