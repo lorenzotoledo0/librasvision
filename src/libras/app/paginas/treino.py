@@ -55,6 +55,17 @@ MODOS = {
 FAMILIAS = [("espacial", "Espacial"), ("temporal", "Temporal"), ("ruido", "Ruído"), ("video", "Vídeo (família D)")]
 
 
+def texto_restante(seg: float) -> str:
+    """Estimativa legivel do tempo restante (arredondada: e uma estimativa, nao um relogio)."""
+    if seg < 60:
+        return "menos de 1 min"
+    m = int(round(seg / 60))
+    if m < 60:
+        return f"cerca de {m} min"
+    h, m = divmod(m, 60)
+    return f"cerca de {h} h {m:02d} min" if m else f"cerca de {h} h"
+
+
 class Curvas:
     """Estado das curvas por (seed, particao), alimentado pelos eventos do arquivo de progresso."""
 
@@ -63,12 +74,19 @@ class Curvas:
         self.fim: dict[tuple, dict] = {}
         self.inicio: dict = {}
         self.execucoes: list[str] = []  # na ablacao, uma execucao por condicao
+        self.plano: dict = {}  # ablacao: condicoes previstas e particoes por condicao
+        self.t0: float | None = None  # instante do primeiro inicio (relogio do processo de treino)
+        self.t_fins: list[float] = []
         self.terminou: dict | None = None
         self.classes: list[str] = []
 
     def aplicar(self, ev: dict) -> None:
         t = ev.get("tipo")
+        if t == "plano_ablacao":
+            self.plano = ev
         if t == "inicio":
+            if self.t0 is None:
+                self.t0 = ev.get("t")
             self.inicio = ev
             self.classes = ev.get("classes", [])
             if ev.get("execucao") and ev["execucao"] not in self.execucoes:
@@ -80,18 +98,33 @@ class Curvas:
                 s[c].append(ev.get(c, np.nan))
         elif t == "fim_particao":
             self.fim[(ev["seed"], ev["fold"], ev.get("execucao", ""))] = ev
+            if ev.get("t"):
+                self.t_fins.append(ev["t"])
         elif t == "fim":
             self.terminou = ev
 
     def progresso(self) -> tuple[int, int]:
-        """(particoes concluidas, total) da execucao ATUAL. Na ablacao cada condicao e uma execucao
-        separada: contar as concluidas de todas contra o total de uma travava a barra em 100%."""
+        """(particoes concluidas, total). Na ablacao com plano: da ablacao inteira. Sem plano: da execucao
+        ATUAL (contar as concluidas de todas as condicoes contra o total de uma travava a barra em 100%)."""
+        if self.plano.get("condicoes") and self.plano.get("particoes_por_condicao"):
+            total = int(self.plano["condicoes"]) * int(self.plano["particoes_por_condicao"])
+            return min(len(self.fim), total), total
         if not self.inicio.get("seeds"):
             return 0, 0
         total = len(self.inicio["seeds"]) * len(self.inicio.get("folds", [1]))
         atual = self.inicio.get("execucao", "")
         feitas = sum(1 for k in self.fim if k[2] == atual)
         return min(feitas, total), total
+
+    def restante_s(self, agora: float) -> float | None:
+        """Estimativa do tempo restante: tempo medio por particao ja concluida x particoes que faltam.
+        None ate a primeira particao terminar (antes disso nao ha base para estimar)."""
+        feitas, total = self.progresso()
+        if self.t0 is None or not self.t_fins or feitas == 0 or total == 0:
+            return None
+        por_particao = (self.t_fins[-1] - self.t0) / len(self.t_fins)
+        decorrido_na_atual = max(0.0, agora - self.t_fins[-1])
+        return max(0.0, (total - feitas) * por_particao - decorrido_na_atual)
 
     def melhor_epoca(self, k: tuple) -> int | None:
         if k in self.fim:
@@ -602,11 +635,16 @@ class PaginaClasse(Pagina):
     def _atualizar_barra(self) -> None:
         if self.proc is None or not self.proc.rodando():
             return  # ao terminar, _fim decide a barra
+        import time
+
         feitas, total = self.curvas.progresso()
         if total:
             self.barra.setRange(0, total)
             self.barra.setValue(feitas)
-            self.barra.setFormat("%v de %m partições")
+            resta = self.curvas.restante_s(time.time())
+            self.barra.setFormat(
+                f"%v de %m partições · {texto_restante(resta)}" if resta is not None else "%v de %m partições"
+            )
 
     def _desenhar_curva(self) -> None:
         k = self.cb_curva.currentData()
