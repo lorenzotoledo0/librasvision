@@ -331,3 +331,36 @@ def test_tempo_real_sem_modelo_informa(qapp, cfg, janela):
     assert "--final" in tr.tela.text()
     janela.ir_para("inicio")
     assert tr.proc is None
+
+
+def test_progresso_conta_so_a_execucao_atual():
+    """Na ablacao cada condicao e uma execucao: as particoes concluidas de condicoes anteriores nao contam
+    (antes a barra travava em 100% a partir da segunda condicao)."""
+    from libras.app.paginas.treino import Curvas
+
+    c = Curvas()
+    c.aplicar({"tipo": "inicio", "execucao": "a_baseline", "seeds": [42], "folds": [0, 1]})
+    c.aplicar({"tipo": "fim_particao", "execucao": "a_baseline", "seed": 42, "fold": 0})
+    assert c.progresso() == (1, 2)
+    c.aplicar({"tipo": "fim_particao", "execucao": "a_baseline", "seed": 42, "fold": 1})
+    c.aplicar({"tipo": "inicio", "execucao": "b_so_espacial", "seeds": [42], "folds": [0, 1]})
+    assert c.progresso() == (0, 2) and c.execucoes == ["a_baseline", "b_so_espacial"]
+    c.aplicar({"tipo": "fim_particao", "execucao": "b_so_espacial", "seed": 42, "fold": 0})
+    assert c.progresso() == (1, 2)
+
+
+def test_progresso_da_ablacao_inteira_e_tempo_restante():
+    from libras.app.paginas.treino import Curvas, texto_restante
+
+    c = Curvas()
+    c.aplicar({"tipo": "plano_ablacao", "condicoes": 4, "particoes_por_condicao": 2})
+    c.aplicar({"tipo": "inicio", "execucao": "baseline", "seeds": [42], "folds": [0, 1], "t": 1000.0})
+    assert c.progresso() == (0, 8) and c.restante_s(1100.0) is None  # sem particao concluida, sem estimativa
+    c.aplicar({"tipo": "fim_particao", "execucao": "baseline", "seed": 42, "fold": 0, "t": 1060.0})
+    c.aplicar({"tipo": "fim_particao", "execucao": "baseline", "seed": 42, "fold": 1, "t": 1120.0})
+    c.aplicar({"tipo": "inicio", "execucao": "so_espacial", "seeds": [42], "folds": [0, 1], "t": 1121.0})
+    assert c.progresso() == (2, 8)  # a barra mostra a ablacao inteira
+    # 60 s por particao, 6 faltando = 360 s; 20 s ja passados na particao atual
+    assert c.restante_s(1140.0) == 340.0
+    assert texto_restante(30) == "menos de 1 min" and texto_restante(340) == "cerca de 6 min"
+    assert texto_restante(3600 + 25 * 60) == "cerca de 1 h 25 min" and texto_restante(7200) == "cerca de 2 h"

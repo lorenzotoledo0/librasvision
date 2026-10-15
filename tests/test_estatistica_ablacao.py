@@ -59,8 +59,15 @@ def test_ablacao_completa_sintetica(dados_ablacao, tmp_path):
     from libras.ablacao import executar_ablacao
 
     logs = []
-    pasta = executar_ablacao(dados_ablacao, pasta=tmp_path / "abl", seeds=[1], sobrescrever=RAPIDO, log=logs.append)
+    prog = tmp_path / "prog.jsonl"
+    pasta = executar_ablacao(
+        dados_ablacao, pasta=tmp_path / "abl", seeds=[1], sobrescrever=RAPIDO, log=logs.append, arquivo_progresso=prog
+    )
     nomes = sorted(p.name for p in pasta.iterdir() if p.is_dir())
+    # a interface estima o tempo pelo plano: o numero previsto de condicoes tem de bater com o executado
+    eventos = [json.loads(l) for l in prog.read_text(encoding="utf-8").splitlines()]
+    plano = next(e for e in eventos if e["tipo"] == "plano_ablacao")
+    assert plano["condicoes"] == len(nomes) and plano["particoes_por_condicao"] >= 1
     assert {"baseline", "so_espacial", "so_temporal", "so_ruido", "combinacao", "baseline_aleatorio_por_video"} <= set(
         nomes
     )

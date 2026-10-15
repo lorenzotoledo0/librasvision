@@ -6,6 +6,14 @@ O formato segue o [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/) e 
 
 ## [Não publicado]
 
+### Corrigido
+
+- Barra de progresso do Treino: na ablação, a partir da segunda condição ela travava em 100%. Agora mostra "N de M partições" (na ablação, da ablação inteira) e qual condição está rodando.
+
+### Adicionado
+
+- Estimativa do tempo restante no Treino e na ablação, calculada pelo tempo médio das partições já concluídas.
+
 ## [0.1.0] - 2026-10-14
 
 Primeira versão pública. Base completa do sistema, **sem dados reais e sem resultados medidos**.

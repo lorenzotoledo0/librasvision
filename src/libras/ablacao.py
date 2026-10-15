@@ -219,8 +219,22 @@ def executar_ablacao(
             )
     escrever_texto_atomico(plano_arq, json.dumps(plano, indent=2, ensure_ascii=False))
 
+    # plano para a interface mostrar o progresso da ablacao inteira e estimar o tempo restante. As
+    # intensidades dependem da melhor condicao (escolhida pela validacao); o numero e o previsto.
+    from .treino import EmissorProgresso
+
+    iniciais = condicoes_iniciais(familias)
+    previstas = len(iniciais)
+    if any(f != "video" for f in familias):
+        previstas += len([i for i in ca["intensidades"] if i != cfg["augmentation"].get("intensidade", "media")])
+    if ca.get("comparar_protocolo_secundario"):
+        previstas += 1
+    EmissorProgresso(arquivo_progresso).emitir(
+        "plano_ablacao", condicoes=previstas, particoes_por_condicao=k * len(seeds)
+    )
+
     res: dict[str, ResultadoCondicao] = {}
-    for c in condicoes_iniciais(familias):
+    for c in iniciais:
         res[c.nome] = _executar_condicao(
             cfg, c, pasta, dados, seeds, folds, verbose, sobrescrever, log, arquivo_progresso
         )
