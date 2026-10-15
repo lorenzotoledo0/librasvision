@@ -62,6 +62,7 @@ class Curvas:
         self.series: dict[tuple, dict] = {}
         self.fim: dict[tuple, dict] = {}
         self.inicio: dict = {}
+        self.execucoes: list[str] = []  # na ablacao, uma execucao por condicao
         self.terminou: dict | None = None
         self.classes: list[str] = []
 
@@ -70,6 +71,8 @@ class Curvas:
         if t == "inicio":
             self.inicio = ev
             self.classes = ev.get("classes", [])
+            if ev.get("execucao") and ev["execucao"] not in self.execucoes:
+                self.execucoes.append(ev["execucao"])
         elif t == "epoca":
             k = (ev["seed"], ev["fold"], ev.get("execucao", ""))
             s = self.series.setdefault(k, {"epoca": [], "loss": [], "accuracy": [], "val_loss": [], "val_accuracy": []})
@@ -79,6 +82,16 @@ class Curvas:
             self.fim[(ev["seed"], ev["fold"], ev.get("execucao", ""))] = ev
         elif t == "fim":
             self.terminou = ev
+
+    def progresso(self) -> tuple[int, int]:
+        """(particoes concluidas, total) da execucao ATUAL. Na ablacao cada condicao e uma execucao
+        separada: contar as concluidas de todas contra o total de uma travava a barra em 100%."""
+        if not self.inicio.get("seeds"):
+            return 0, 0
+        total = len(self.inicio["seeds"]) * len(self.inicio.get("folds", [1]))
+        atual = self.inicio.get("execucao", "")
+        feitas = sum(1 for k in self.fim if k[2] == atual)
+        return min(feitas, total), total
 
     def melhor_epoca(self, k: tuple) -> int | None:
         if k in self.fim:
@@ -510,7 +523,8 @@ class PaginaClasse(Pagina):
         self.bt_iniciar.setEnabled(False)
         self.bt_parar.setEnabled(True)
         self.barra.setVisible(True)
-        self.barra.setRange(0, 0)
+        self.barra.setRange(0, 0)  # indeterminada ate o primeiro evento de inicio
+        self.barra.setFormat("%p%")
         self.lb_status.setText(f"Iniciado: {MODOS[modo]}.")
         self.timer.start(500)
 
@@ -526,6 +540,7 @@ class PaginaClasse(Pagina):
         self.bt_parar.setEnabled(False)
         self.barra.setRange(0, 1)
         self.barra.setValue(1 if codigo == 0 else 0)
+        self.barra.setFormat("Concluído" if codigo == 0 else "Interrompido")
         if codigo == 0 and self.curvas.terminou:
             self.lb_status.setText(f"Concluído. Resultados em {self.curvas.terminou.get('pasta')}.")
         elif codigo == 0:
@@ -556,10 +571,16 @@ class PaginaClasse(Pagina):
             if ev.get("tipo") == "fim_particao":
                 self._linha_teste(ev)
             if ev.get("tipo") == "inicio_particao":
+                cond = (
+                    f"Condição {len(self.curvas.execucoes)} da ablação. "
+                    if self.cb_modo.currentData() == "ablacao" and self.curvas.execucoes
+                    else ""
+                )
                 self.lb_status.setText(
-                    f"Treinando: seed {ev['seed']}, partição {ev['fold']} (teste em "
+                    f"{cond}Treinando: seed {ev['seed']}, partição {ev['fold']} (teste em "
                     f"{', '.join(ev.get('sinalizadores_teste', [])) or 'validação'})."
                 )
+        self._atualizar_barra()
         if mudou_lista:
             atual = self.cb_curva.currentData()
             self.cb_curva.blockSignals(True)
@@ -577,6 +598,15 @@ class PaginaClasse(Pagina):
             )
             self.cb_curva.blockSignals(False)
         self._desenhar_curva()
+
+    def _atualizar_barra(self) -> None:
+        if self.proc is None or not self.proc.rodando():
+            return  # ao terminar, _fim decide a barra
+        feitas, total = self.curvas.progresso()
+        if total:
+            self.barra.setRange(0, total)
+            self.barra.setValue(feitas)
+            self.barra.setFormat("%v de %m partições")
 
     def _desenhar_curva(self) -> None:
         k = self.cb_curva.currentData()
@@ -605,11 +635,6 @@ class PaginaClasse(Pagina):
             ev.get("melhor_epoca"),
         ]
         k = (ev["seed"], ev["fold"], ev.get("execucao", ""))
-        inicio = self.curvas.inicio
-        if inicio.get("seeds"):
-            total = len(inicio["seeds"]) * len(inicio.get("folds", [1]))
-            self.barra.setRange(0, total)
-            self.barra.setValue(len(self.curvas.fim))
         for j, v in enumerate(vals):
             it = QTableWidgetItem(str(v))
             it.setData(Qt.UserRole, k)

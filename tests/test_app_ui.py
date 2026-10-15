@@ -331,3 +331,19 @@ def test_tempo_real_sem_modelo_informa(qapp, cfg, janela):
     assert "--final" in tr.tela.text()
     janela.ir_para("inicio")
     assert tr.proc is None
+
+
+def test_progresso_conta_so_a_execucao_atual():
+    """Na ablacao cada condicao e uma execucao: as particoes concluidas de condicoes anteriores nao contam
+    (antes a barra travava em 100% a partir da segunda condicao)."""
+    from libras.app.paginas.treino import Curvas
+
+    c = Curvas()
+    c.aplicar({"tipo": "inicio", "execucao": "a_baseline", "seeds": [42], "folds": [0, 1]})
+    c.aplicar({"tipo": "fim_particao", "execucao": "a_baseline", "seed": 42, "fold": 0})
+    assert c.progresso() == (1, 2)
+    c.aplicar({"tipo": "fim_particao", "execucao": "a_baseline", "seed": 42, "fold": 1})
+    c.aplicar({"tipo": "inicio", "execucao": "b_so_espacial", "seeds": [42], "folds": [0, 1]})
+    assert c.progresso() == (0, 2) and c.execucoes == ["a_baseline", "b_so_espacial"]
+    c.aplicar({"tipo": "fim_particao", "execucao": "b_so_espacial", "seed": 42, "fold": 0})
+    assert c.progresso() == (1, 2)
