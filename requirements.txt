@@ -25,4 +25,4 @@ scipy==1.17.1                 # interpolacao e testes estatisticos
 matplotlib==3.11.2            # graficos para o TCC
 
 # Testes
-pytest==9.1.1
+pytest==9.2.0
